@@ -1,0 +1,167 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Tokens de design — extraídos por leitura das telas do protótipo.
+   São estimativas: ajustar aqui muda todas as telas de uma vez.
+   ------------------------------------------------------------------ */
+@theme {
+  --font-display: 'Playfair Display', 'Times New Roman', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-canvas: #f6f1e7;
+  --color-surface: #fffdf9;
+  --color-surface-2: #f3ece0;
+  --color-surface-3: #ece1cd;
+  --color-line: #e7decb;
+  --color-line-strong: #d8cbaf;
+
+  --color-ink: #322f2a;
+  --color-ink-soft: #5d584f;
+  --color-ink-muted: #8b8478;
+
+  --color-gold: #8b6b2e;
+  --color-gold-dark: #6f5420;
+  --color-gold-soft: #c9a96a;
+  --color-gold-tint: #f1e7d5;
+
+  --color-danger: #b4483d;
+  --color-danger-tint: #f7e3df;
+  --color-success: #4f6b4a;
+  --color-success-tint: #e6ecdf;
+  /* Falta do cliente: entre o alerta de erro e o dourado do estúdio */
+  --color-warn: #91662a;
+  --color-warn-tint: #f6ead4;
+  --color-info: #4a6480;
+  --color-info-tint: #e4eaf0;
+
+  --radius-card: 18px;
+  --shadow-card: 0 1px 2px rgba(50, 47, 42, 0.04), 0 10px 26px -16px rgba(50, 47, 42, 0.22);
+  --shadow-float: 0 -8px 24px -12px rgba(50, 47, 42, 0.18);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Rótulo pequeno em caixa alta — usado em quase todas as telas do protótipo */
+  .eyebrow {
+    @apply font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted;
+  }
+
+  .card {
+    @apply rounded-[18px] border border-line bg-surface p-4 shadow-card;
+  }
+
+  .card-flat {
+    @apply rounded-[16px] border border-line bg-surface-2 p-3;
+  }
+
+  /*
+   * Base compartilhada pelas variantes. No Tailwind v4 não é possível `@apply` de uma
+   * classe de componente, por isso a base é declarada no mesmo seletor agrupado.
+   */
+  .btn,
+  .btn-primary,
+  .btn-outline,
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-[14px] border border-transparent px-4 py-3
+      text-[13px] font-semibold uppercase tracking-[0.06em] transition-colors
+      disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .btn-primary {
+    @apply bg-gold text-white hover:bg-gold-dark;
+  }
+
+  .btn-outline {
+    @apply border-gold/70 bg-transparent text-gold hover:bg-gold-tint;
+  }
+
+  .btn-ghost {
+    @apply border-line bg-surface text-ink-soft hover:bg-surface-2;
+  }
+
+  .btn-sm {
+    @apply px-3 py-2 text-[11px];
+  }
+
+  .chip {
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface-2
+      px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors;
+  }
+
+  .chip-active {
+    @apply border-gold bg-gold text-white;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium;
+  }
+
+  .field-label {
+    @apply mb-1.5 block font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted;
+  }
+
+  .field-input {
+    @apply w-full rounded-[12px] border border-line bg-surface px-3 py-3 text-[14px] text-ink
+      placeholder:text-ink-muted/70 focus:border-gold focus:outline-none;
+  }
+
+  .icon-btn {
+    @apply grid size-9 place-items-center rounded-full border border-line bg-surface text-ink-soft
+      transition-colors hover:bg-surface-2;
+  }
+
+  .section-rule {
+    @apply h-px w-full bg-line;
+  }
+}
+
+/* A barra de rolagem do protótipo é discreta */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 999px;
+}
