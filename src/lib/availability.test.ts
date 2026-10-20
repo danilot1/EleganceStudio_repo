@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { buildDaySlots, countAvailableSlots, hasConflict, workWindows } from '../lib/availability'
+import { addDaysISO, fromISODate, todayISO } from '../lib/dates'
 import type { Appointment } from '../lib/types'
+
+/**
+ * A grade esconde horários que já passaram, então uma data fixa deixaria estes
+ * testes dependentes do relógio (quebrariam no próprio dia). A próxima
+ * terça-feira é sempre futura e cai num dia útil de 9h às 19h.
+ */
+const FUTURE_ISO = (() => {
+  let iso = addDaysISO(todayISO(), 1)
+  while (fromISODate(iso).getDay() !== 2) iso = addDaysISO(iso, 1)
+  return iso
+})()
 
 function appointment(partial: Partial<Appointment>): Appointment {
   return {
@@ -8,7 +20,7 @@ function appointment(partial: Partial<Appointment>): Appointment {
     clientName: 'Cliente',
     serviceId: 'corte-visagismo',
     professionalId: 'camila',
-    dateISO: '2026-10-20', // terça-feira
+    dateISO: FUTURE_ISO,
     startMin: 10 * 60,
     durationMin: 60,
     price: 100,
@@ -29,6 +41,7 @@ describe('expediente', () => {
   })
 
   it('abre das 9h às 19h de segunda a sexta', () => {
+    // workWindows só olha o dia da semana, então a data fixa serve como fixture.
     expect(workWindows('2026-10-20')).toEqual([{ startMin: 9 * 60, endMin: 19 * 60 }])
   })
 })
@@ -36,7 +49,7 @@ describe('expediente', () => {
 describe('grade de horários', () => {
   it('não oferece horário que termina depois do fechamento', () => {
     const slots = buildDaySlots({
-      dateISO: '2026-10-20',
+      dateISO: FUTURE_ISO,
       durationMin: 60,
       professionalId: 'camila',
       appointments: [],
@@ -47,7 +60,7 @@ describe('grade de horários', () => {
 
   it('marca o almoço (12h às 13h) como indisponível, mantendo o horário visível como ocupado', () => {
     const slots = buildDaySlots({
-      dateISO: '2026-10-20',
+      dateISO: FUTURE_ISO,
       durationMin: 60,
       professionalId: 'camila',
       appointments: [],
@@ -59,7 +72,7 @@ describe('grade de horários', () => {
 
   it('marca como ocupado o horário que colide com agendamento da mesma profissional', () => {
     const slots = buildDaySlots({
-      dateISO: '2026-10-20',
+      dateISO: FUTURE_ISO,
       durationMin: 50,
       professionalId: 'camila',
       appointments: [appointment({ startMin: 10 * 60, durationMin: 60 })],
@@ -72,7 +85,7 @@ describe('grade de horários', () => {
 
   it('não deixa o agendamento de uma profissional bloquear a agenda de outra', () => {
     const slots = buildDaySlots({
-      dateISO: '2026-10-20',
+      dateISO: FUTURE_ISO,
       durationMin: 50,
       professionalId: 'cris',
       appointments: [appointment({ professionalId: 'camila' })],
@@ -82,7 +95,7 @@ describe('grade de horários', () => {
 
   it('libera o horário quando o agendamento está cancelado', () => {
     const slots = buildDaySlots({
-      dateISO: '2026-10-20',
+      dateISO: FUTURE_ISO,
       durationMin: 50,
       professionalId: 'camila',
       appointments: [appointment({ status: 'cancelado' })],
@@ -92,7 +105,7 @@ describe('grade de horários', () => {
 
   it('libera o horário quando a cliente faltou', () => {
     const slots = buildDaySlots({
-      dateISO: '2026-10-20',
+      dateISO: FUTURE_ISO,
       durationMin: 50,
       professionalId: 'camila',
       appointments: [appointment({ status: 'faltou' })],
@@ -101,7 +114,7 @@ describe('grade de horários', () => {
 
     expect(
       hasConflict({
-        dateISO: '2026-10-20',
+        dateISO: FUTURE_ISO,
         startMin: 10 * 60,
         durationMin: 50,
         professionalId: 'camila',
@@ -112,7 +125,7 @@ describe('grade de horários', () => {
 
   it('conta as vagas livres do dia', () => {
     const total = countAvailableSlots({
-      dateISO: '2026-10-20',
+      dateISO: FUTURE_ISO,
       durationMin: 50,
       professionalId: 'camila',
       appointments: [],
@@ -125,7 +138,7 @@ describe('grade de horários', () => {
     const appointments = [appointment({ startMin: 10 * 60, durationMin: 60 })]
     expect(
       hasConflict({
-        dateISO: '2026-10-20',
+        dateISO: FUTURE_ISO,
         startMin: 10 * 60 + 30,
         durationMin: 50,
         professionalId: 'camila',
@@ -134,7 +147,7 @@ describe('grade de horários', () => {
     ).toBe(true)
     expect(
       hasConflict({
-        dateISO: '2026-10-20',
+        dateISO: FUTURE_ISO,
         startMin: 11 * 60,
         durationMin: 50,
         professionalId: 'camila',
@@ -144,7 +157,7 @@ describe('grade de horários', () => {
     // o próprio agendamento sendo reagendado não conflita consigo mesmo
     expect(
       hasConflict({
-        dateISO: '2026-10-20',
+        dateISO: FUTURE_ISO,
         startMin: 10 * 60,
         durationMin: 60,
         professionalId: 'camila',
