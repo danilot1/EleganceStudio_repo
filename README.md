@@ -89,4 +89,5 @@ Vitest + Testing Library (testes).
 ## Repositório GitHub
 
 Código publicado em **https://github.com/danilot1/EleganceStudio_repo** (branch `main`).
-O histórico local desta máquina também contém os mesmos commits de desenvolvimento.
+O histórico local desta máquina tem os mesmos arquivos, mas foi criado por outro caminho,
+então os SHAs dos commits diferem dos do GitHub.
