@@ -88,6 +88,5 @@ Vitest + Testing Library (testes).
 
 ## Repositório GitHub
 
-Ainda **não configurado**: este workspace começou vazio (apenas o commit "Initial cloud
-project") e não há remote apontado. Quando a URL do repositório do projeto for definida, o
-histórico existente deve ser preservado e nada será enviado sem confirmação.
+Código publicado em **https://github.com/danilot1/EleganceStudio_repo** (branch `main`).
+O histórico local desta máquina também contém os mesmos commits de desenvolvimento.

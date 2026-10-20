@@ -99,8 +99,7 @@ tela em vez de simular sucesso:
 
 ## 5. Próximos passos sugeridos
 
-1. Definir o repositório no GitHub e preservar o histórico.
-2. Escolher o back-end (linguagem e banco) e mover `src/lib/storage.ts` para uma API real.
-3. Implementar autenticação com hash de senha e autorização por perfil no servidor.
-4. Integrar um serviço de mensagens para confirmação e lembretes.
-5. Substituir preços estimados pelos valores oficiais e incluir as fotos do estúdio.
+1. Escolher o back-end (linguagem e banco) e mover `src/lib/storage.ts` para uma API real.
+2. Implementar autenticação com hash de senha e autorização por perfil no servidor.
+3. Integrar um serviço de mensagens para confirmação e lembretes.
+4. Substituir preços estimados pelos valores oficiais e incluir as fotos do estúdio.
