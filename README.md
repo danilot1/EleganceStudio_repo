@@ -4,7 +4,7 @@ Front-end funcional do EleganceStudio, construído a partir das telas geradas no
 **Google Stitch** para o Projeto Integrador da UNICAP.
 
 # Membros 
-Danilo Teixeira de Carvalho br
+Danilo Teixeira de Carvalho <br>
 Dayvson Henrique da Silva Mendes 
 Diana da Silva
 Gabrielly Gouveia da Silva Feitosa
