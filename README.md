@@ -3,6 +3,15 @@
 Front-end funcional do EleganceStudio, construído a partir das telas geradas no
 **Google Stitch** para o Projeto Integrador da UNICAP.
 
+#Membros 
+Danilo Teixeira de Carvalho
+Dayvson Henrique da Silva Mendes 
+Diana da Silva
+Gabrielly Gouveia da Silva Feitosa
+Marcos Vinícius Medeiros Ferreira 
+Pedro Mota Mendes -
+
+
 Cobre os dois lados do sistema:
 
 - **Cliente:** Home, catálogo de serviços, agendamento em 4 etapas, criar conta, entrar,
@@ -91,3 +100,4 @@ Vitest + Testing Library (testes).
 Código publicado em **https://github.com/danilot1/EleganceStudio_repo** (branch `main`).
 O histórico local desta máquina tem os mesmos arquivos, mas foi criado por outro caminho,
 então os SHAs dos commits diferem dos do GitHub.
+
