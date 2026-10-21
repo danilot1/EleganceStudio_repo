@@ -1,16 +1,15 @@
+# Membros 
+Danilo Teixeira de Carvalho <br>
+Dayvson Henrique da Silva Mendes <br>
+Diana da Silva <br>
+Gabrielly Gouveia da Silva Feitosa <br>
+Marcos Vinícius Medeiros Ferreira <br>
+Pedro Mota Mendes <br>
+
 # EleganceStudio — Podologia Especializada & Salão de Beleza
 
 Front-end funcional do EleganceStudio, construído a partir das telas geradas no
 **Google Stitch** para o Projeto Integrador da UNICAP.
-
-# Membros 
-Danilo Teixeira de Carvalho <br>
-Dayvson Henrique da Silva Mendes 
-Diana da Silva
-Gabrielly Gouveia da Silva Feitosa
-Marcos Vinícius Medeiros Ferreira 
-Pedro Mota Mendes
-
 
 Cobre os dois lados do sistema:
 
