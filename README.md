@@ -3,13 +3,13 @@
 Front-end funcional do EleganceStudio, construído a partir das telas geradas no
 **Google Stitch** para o Projeto Integrador da UNICAP.
 
-#Membros 
+# Membros 
 Danilo Teixeira de Carvalho
 Dayvson Henrique da Silva Mendes 
 Diana da Silva
 Gabrielly Gouveia da Silva Feitosa
 Marcos Vinícius Medeiros Ferreira 
-Pedro Mota Mendes -
+Pedro Mota Mendes
 
 
 Cobre os dois lados do sistema:
