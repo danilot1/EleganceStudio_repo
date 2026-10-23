@@ -7,248 +7,154 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import {
-  CATEGORIES,
-  PROFESSIONALS,
-  SERVICE_GROUPS,
-  SERVICES,
-} from '../data/catalog'
-import { hasConflict } from '../lib/availability'
-import { isValidEmail, onlyDigits } from '../lib/format'
+import { CATEGORIES, PROFESSIONALS, SERVICE_GROUPS, SERVICES } from '../data/catalog'
+import { backend } from '../lib/backend'
+import type {
+  ActionResult,
+  AppointmentResult,
+  NewAppointmentInput,
+  SignUpInput,
+} from '../lib/backend/types'
+import { isValidEmail } from '../lib/format'
 import { canRegisterNoShow } from '../lib/noShow'
-import { loadDatabase, resetDatabase, saveDatabase, type Database } from '../lib/storage'
 import type {
   Appointment,
   AppointmentStatus,
+  BusySlot,
   PaymentMethod,
   Session,
-  User,
 } from '../lib/types'
 
-const SESSION_KEY = 'elegance-studio:session'
+export type { NewAppointmentInput, SignUpInput }
 
-export interface SignUpInput {
-  name: string
-  email: string
-  phone: string
-  password: string
-}
-
-export interface NewAppointmentInput {
-  serviceId: string
-  professionalId: string
-  dateISO: string
-  startMin: number
-  durationMin: number
-  price: number
-  clientName: string
-  clientNote?: string
-  /** Usado pelo encaixe no balcão: entra já confirmado. */
-  status?: AppointmentStatus
-  origin?: Appointment['origin']
-  title?: string
-}
-
-export interface ActionResult {
-  ok: boolean
-  error?: string
-}
+/** Canal escolhido na tela de recuperação de senha. */
+export type RecoveryChannel = 'email' | 'whatsapp'
 
 interface AppStateValue {
   services: typeof SERVICES
   professionals: typeof PROFESSIONALS
   groups: typeof SERVICE_GROUPS
   categories: typeof CATEGORIES
+  /** Atendimentos visíveis para quem está conectado (próprios ou todos, se gestão). */
   appointments: Appointment[]
+  /** Blocos de agenda usados para calcular horários livres. */
+  agenda: BusySlot[]
   session: Session | null
-  login: (email: string, password: string, remember?: boolean) => ActionResult
-  signUp: (input: SignUpInput) => ActionResult
-  logout: () => void
-  requestPasswordReset: (identifier: string) => ActionResult
-  createAppointment: (input: NewAppointmentInput) => ActionResult & { appointment?: Appointment }
-  setAppointmentStatus: (id: string, status: AppointmentStatus) => void
+  /** false enquanto o Firebase ainda não respondeu quem é o usuário. */
+  ready: boolean
+  login: (email: string, password: string, remember?: boolean) => Promise<ActionResult>
+  signUp: (input: SignUpInput) => Promise<ActionResult>
+  logout: () => Promise<void>
+  requestPasswordReset: (identifier: string, channel?: RecoveryChannel) => Promise<ActionResult>
+  createAppointment: (input: NewAppointmentInput) => Promise<AppointmentResult>
+  setAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<ActionResult>
   /** Marca a falta da cliente e libera o horário na agenda. */
-  registerNoShow: (id: string) => ActionResult
-  registerPayment: (id: string, method: PaymentMethod) => void
-  rescheduleAppointment: (id: string, dateISO: string, startMin: number) => ActionResult
-  resetDemo: () => void
+  registerNoShow: (id: string) => Promise<ActionResult>
+  registerPayment: (id: string, method: PaymentMethod) => Promise<ActionResult>
+  rescheduleAppointment: (id: string, dateISO: string, startMin: number) => Promise<ActionResult>
 }
 
 const AppStateContext = createContext<AppStateValue | null>(null)
 
-function readSession(): Session | null {
-  try {
-    const raw =
-      window.localStorage.getItem(SESSION_KEY) ?? window.sessionStorage.getItem(SESSION_KEY)
-    return raw ? (JSON.parse(raw) as Session) : null
-  } catch {
-    return null
-  }
-}
-
+/**
+ * Estado do app sobre o Firebase.
+ *
+ * O Firestore é a fonte da verdade: os agendamentos chegam por `onSnapshot`, então
+ * qualquer alteração feita em outro dispositivo aparece aqui sem recarregar.
+ */
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  // App somente no navegador: os dados e a sessão são lidos já na primeira renderização,
-  // senão as rotas protegidas redirecionariam para o login antes de saber que há sessão.
-  const [db, setDb] = useState<Database>(() => loadDatabase())
-  const [session, setSession] = useState<Session | null>(() => readSession())
+  const [session, setSession] = useState<Session | null>(null)
+  const [ready, setReady] = useState(false)
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [agenda, setAgenda] = useState<BusySlot[]>([])
+
+  useEffect(
+    () =>
+      backend.watchSession((next) => {
+        setSession(next)
+        setReady(true)
+      }),
+    [],
+  )
+
+  // A consulta muda com o perfil: cliente lê os próprios atendimentos, gestão lê todos.
+  const userId = session?.userId
+  const role = session?.role
+  useEffect(() => {
+    if (!ready || !session) {
+      setAppointments([])
+      return
+    }
+    return backend.watchAppointments(session, setAppointments)
+    // `session` só muda quando o login muda; usar os campos evita reassinar à toa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, userId, role])
 
   useEffect(() => {
-    saveDatabase(db)
-  }, [db])
+    if (!ready) return
+    return backend.watchAgenda(setAgenda)
+  }, [ready])
 
-  /**
-   * "Lembrar-me neste dispositivo" decide onde a sessão é guardada:
-   * marcado = localStorage (sobrevive ao fechar o navegador); desmarcado = sessionStorage.
-   */
-  const persistSession = useCallback((value: Session | null, remember = true) => {
-    setSession(value)
-    try {
-      window.localStorage.removeItem(SESSION_KEY)
-      window.sessionStorage.removeItem(SESSION_KEY)
-      if (value) {
-        const target = remember ? window.localStorage : window.sessionStorage
-        target.setItem(SESSION_KEY, JSON.stringify(value))
+  const login = useCallback(
+    async (email: string, password: string, remember = true): Promise<ActionResult> => {
+      const result = await backend.signIn(email, password, remember)
+      if (result.session) {
+        setSession(result.session)
+        setReady(true)
       }
-    } catch {
-      // sem storage: sessão só em memória
+      return result.ok ? { ok: true } : { ok: false, error: result.error }
+    },
+    [],
+  )
+
+  const signUp = useCallback(async (input: SignUpInput): Promise<ActionResult> => {
+    const result = await backend.signUp(input)
+    if (result.session) {
+      setSession(result.session)
+      setReady(true)
+    }
+    return result.ok ? { ok: true } : { ok: false, error: result.error }
+  }, [])
+
+  const logout = useCallback(async (): Promise<void> => {
+    try {
+      await backend.signOut()
+    } finally {
+      setSession(null)
     }
   }, [])
 
-  const login = useCallback(
-    (email: string, password: string, remember = true): ActionResult => {
-      const user = db.users.find(
-        (item: User) => item.email.toLowerCase() === email.trim().toLowerCase(),
-      )
-      if (!user || user.password !== password) {
-        return { ok: false, error: 'E-mail ou senha não conferem.' }
-      }
-      persistSession(
-        {
-          userId: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-        remember,
-      )
-      return { ok: true }
-    },
-    [db.users, persistSession],
-  )
-
-  const signUp = useCallback(
-    (input: SignUpInput): ActionResult => {
-      const email = input.email.trim().toLowerCase()
-      if (!input.name.trim()) return { ok: false, error: 'Informe o nome completo.' }
-      if (!isValidEmail(email)) return { ok: false, error: 'Informe um e-mail válido.' }
-      if (onlyDigits(input.phone).length < 10) {
-        return { ok: false, error: 'Informe um telefone/WhatsApp válido com DDD.' }
-      }
-      if (input.password.length < 8) {
-        return { ok: false, error: 'A senha precisa ter no mínimo 8 caracteres.' }
-      }
-      if (db.users.some((item) => item.email.toLowerCase() === email)) {
-        return { ok: false, error: 'Já existe uma conta com este e-mail.' }
-      }
-
-      const user: User = {
-        id: `user-${Date.now()}`,
-        name: input.name.trim(),
-        email,
-        phone: input.phone,
-        password: input.password,
-        role: 'cliente',
-        createdAtISO: new Date().toISOString(),
-      }
-      setDb((current) => ({ ...current, users: [...current.users, user] }))
-      persistSession({
-        userId: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      })
-      return { ok: true }
-    },
-    [db.users, persistSession],
-  )
-
-  const logout = useCallback(() => persistSession(null), [persistSession])
-
-  /**
-   * Recuperação de senha: apenas verifica se o contato existe.
-   * NENHUMA mensagem é enviada — não há servidor de e-mail/WhatsApp neste protótipo.
-   */
   const requestPasswordReset = useCallback(
-    (identifier: string): ActionResult => {
-      const value = identifier.trim().toLowerCase()
-      const user = db.users.find(
-        (item) =>
-          item.email.toLowerCase() === value || onlyDigits(item.phone) === onlyDigits(value),
-      )
-      if (!user) {
-        return { ok: false, error: 'Não encontramos uma conta com este e-mail ou WhatsApp.' }
+    async (identifier: string, channel: RecoveryChannel = 'email'): Promise<ActionResult> => {
+      if (channel === 'whatsapp') {
+        return {
+          ok: false,
+          error:
+            'A recuperação por WhatsApp não existe: o Firebase envia o link de redefinição apenas por e-mail.',
+        }
       }
-      return { ok: true }
+      const email = identifier.trim()
+      if (!isValidEmail(email)) return { ok: false, error: 'Informe um e-mail válido.' }
+      return backend.sendPasswordReset(email)
     },
-    [db.users],
+    [],
   )
 
   const createAppointment = useCallback(
-    (input: NewAppointmentInput): ActionResult & { appointment?: Appointment } => {
-      if (
-        hasConflict({
-          dateISO: input.dateISO,
-          startMin: input.startMin,
-          durationMin: input.durationMin,
-          professionalId: input.professionalId,
-          appointments: db.appointments,
-        })
-      ) {
-        return { ok: false, error: 'Este horário acabou de ser ocupado. Escolha outro.' }
-      }
-
-      const appointment: Appointment = {
-        id: `apt-${Date.now()}`,
-        clientName: input.clientName.trim(),
-        clientUserId: session?.role === 'cliente' ? session.userId : undefined,
-        serviceId: input.serviceId,
-        title: input.title,
-        professionalId: input.professionalId,
-        dateISO: input.dateISO,
-        startMin: input.startMin,
-        durationMin: input.durationMin,
-        price: input.price,
-        status: input.status ?? 'aguardando',
-        payment: 'pendente',
-        origin: input.origin ?? 'app',
-        note: input.clientNote?.trim() || undefined,
-      }
-
-      setDb((current) => ({ ...current, appointments: [...current.appointments, appointment] }))
-      return { ok: true, appointment }
-    },
-    [db.appointments, session],
+    (input: NewAppointmentInput): Promise<AppointmentResult> =>
+      backend.createAppointment(input, session),
+    [session],
   )
 
-  const setAppointmentStatus = useCallback((id: string, status: AppointmentStatus) => {
-    setDb((current) => ({
-      ...current,
-      appointments: current.appointments.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status,
-              payment:
-                status === 'cancelado' && item.payment === 'pendente' ? 'pendente' : item.payment,
-            }
-          : item,
-      ),
-    }))
-  }, [])
+  const setAppointmentStatus = useCallback(
+    (id: string, status: AppointmentStatus): Promise<ActionResult> =>
+      backend.setAppointmentStatus(id, status),
+    [],
+  )
 
   const registerNoShow = useCallback(
-    (id: string): ActionResult => {
-      const target = db.appointments.find((item) => item.id === id)
+    async (id: string): Promise<ActionResult> => {
+      const target = appointments.find((item) => item.id === id)
       if (!target) return { ok: false, error: 'Agendamento não encontrado.' }
       if (!canRegisterNoShow(target)) {
         return {
@@ -257,57 +163,22 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
             'Só é possível registrar falta depois do horário marcado e antes de concluir ou cancelar o atendimento.',
         }
       }
-      setDb((current) => ({
-        ...current,
-        appointments: current.appointments.map((item) =>
-          item.id === id ? { ...item, status: 'faltou', note: 'Cliente não compareceu' } : item,
-        ),
-      }))
-      return { ok: true }
+      return backend.registerNoShow(id)
     },
-    [db.appointments],
+    [appointments],
   )
 
-  const registerPayment = useCallback((id: string, method: PaymentMethod) => {
-    setDb((current) => ({
-      ...current,
-      appointments: current.appointments.map((item) =>
-        item.id === id ? { ...item, payment: 'pago', paymentMethod: method } : item,
-      ),
-    }))
-  }, [])
+  const registerPayment = useCallback(
+    (id: string, method: PaymentMethod): Promise<ActionResult> =>
+      backend.registerPayment(id, method),
+    [],
+  )
 
   const rescheduleAppointment = useCallback(
-    (id: string, dateISO: string, startMin: number): ActionResult => {
-      const target = db.appointments.find((item) => item.id === id)
-      if (!target) return { ok: false, error: 'Agendamento não encontrado.' }
-      if (
-        hasConflict({
-          dateISO,
-          startMin,
-          durationMin: target.durationMin,
-          professionalId: target.professionalId,
-          appointments: db.appointments,
-          ignoreAppointmentId: id,
-        })
-      ) {
-        return { ok: false, error: 'Horário indisponível para esta profissional.' }
-      }
-      setDb((current) => ({
-        ...current,
-        appointments: current.appointments.map((item) =>
-          item.id === id ? { ...item, dateISO, startMin, status: 'aguardando' } : item,
-        ),
-      }))
-      return { ok: true }
-    },
-    [db.appointments],
+    (id: string, dateISO: string, startMin: number): Promise<ActionResult> =>
+      backend.rescheduleAppointment(id, dateISO, startMin),
+    [],
   )
-
-  const resetDemo = useCallback(() => {
-    setDb(resetDatabase())
-    persistSession(null)
-  }, [persistSession])
 
   const value = useMemo<AppStateValue>(
     () => ({
@@ -315,8 +186,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       professionals: PROFESSIONALS,
       groups: SERVICE_GROUPS,
       categories: CATEGORIES,
-      appointments: db.appointments,
+      appointments,
+      agenda,
       session,
+      ready,
       login,
       signUp,
       logout,
@@ -326,11 +199,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       registerNoShow,
       registerPayment,
       rescheduleAppointment,
-      resetDemo,
     }),
     [
-      db.appointments,
+      appointments,
+      agenda,
       session,
+      ready,
       login,
       signUp,
       logout,
@@ -340,7 +214,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       registerNoShow,
       registerPayment,
       rescheduleAppointment,
-      resetDemo,
     ],
   )
 

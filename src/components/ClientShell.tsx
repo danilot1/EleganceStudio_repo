@@ -151,8 +151,8 @@ export function TopBar({ context }: { context?: string }) {
       {showNotifications ? (
         <div className="mx-auto w-full max-w-[560px] px-4 pb-3">
           <DemoNotice>
-            Lembretes por WhatsApp e notificações push ainda não existem: dependem de back-end
-            e de um serviço de mensagens. Nada é enviado.
+            Lembretes por WhatsApp e notificações push ainda não existem: dependem de um serviço
+            de mensagens. Nada é enviado.
           </DemoNotice>
         </div>
       ) : null}
@@ -180,9 +180,10 @@ export function TopBar({ context }: { context?: string }) {
                     type="button"
                     className="btn-outline btn-sm flex-1"
                     onClick={() => {
-                      logout()
-                      setShowAccount(false)
-                      navigate('/')
+                      void logout().then(() => {
+                        setShowAccount(false)
+                        navigate('/')
+                      })
                     }}
                   >
                     <LogOut className="size-3.5" aria-hidden />
@@ -206,8 +207,8 @@ export function TopBar({ context }: { context?: string }) {
               </>
             )}
             <p className="text-[11px] leading-relaxed text-ink-muted">
-              Olá{ session ? `, ${firstNameOf(session.name)}` : ''} — o cadastro e o login atuais
-              são locais (demonstração), sem servidor de autenticação.
+              Olá{ session ? `, ${firstNameOf(session.name)}` : ''} — a sessão é gerenciada pelo
+              Firebase Authentication e os agendamentos ficam no Firestore.
             </p>
           </div>
         </div>

@@ -39,7 +39,7 @@ export function SlotPicker({
   days?: number
   startDateISO?: string
 }) {
-  const { appointments } = useAppState()
+  const { agenda } = useAppState()
   const [selectedDate, setSelectedDate] = useState(value?.dateISO ?? startDateISO)
 
   const dateOptions = useMemo(
@@ -51,7 +51,7 @@ export function SlotPicker({
     dateISO: selectedDate,
     durationMin,
     professionalId,
-    appointments,
+    appointments: agenda,
     ignoreAppointmentId,
   })
 
@@ -59,7 +59,7 @@ export function SlotPicker({
     dateISO: selectedDate,
     durationMin,
     professionalId,
-    appointments,
+    appointments: agenda,
   })
 
   const morning = slots.filter((slot) => slot.startMin < 12 * 60)
@@ -76,7 +76,7 @@ export function SlotPicker({
 
         <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Escolha o dia">
           {dateOptions.map((dateISO) => {
-            const full = isDayFull({ dateISO, durationMin, professionalId, appointments })
+            const full = isDayFull({ dateISO, durationMin, professionalId, appointments: agenda })
             const active = dateISO === selectedDate
             return (
               <button

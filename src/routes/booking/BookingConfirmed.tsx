@@ -94,8 +94,8 @@ export function BookingConfirmed() {
       </div>
 
       <DemoNotice>
-        Este agendamento foi salvo apenas neste navegador. Sem back-end, ele não é visto pelo
-        estúdio nem aparece em outro dispositivo.
+        Este agendamento está salvo no Firestore do estúdio: já aparece na agenda da gestão e em
+        qualquer dispositivo em que você entrar. Nenhuma mensagem de confirmação é enviada.
       </DemoNotice>
     </div>
   )

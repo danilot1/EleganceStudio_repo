@@ -57,8 +57,8 @@ export function BookingLayout() {
       <Outlet />
       {index === 3 ? (
         <DemoNotice>
-          A confirmação cria o agendamento somente neste navegador (localStorage). Nenhuma
-          mensagem é enviada e nenhum sistema do estúdio é avisado.
+          A confirmação grava o agendamento no Firestore e ele passa a aparecer na agenda da
+          gestão. Nenhuma mensagem é enviada à cliente.
         </DemoNotice>
       ) : null}
     </div>

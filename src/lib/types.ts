@@ -84,19 +84,15 @@ export interface Appointment {
 
 export type UserRole = 'cliente' | 'admin'
 
-export interface User {
-  id: string
-  name: string
-  email: string
-  phone: string
-  /**
-   * MOCK ACADÊMICO: senha em texto puro no localStorage, apenas para o protótipo
-   * demonstrar os fluxos. Em produção isto nunca deve existir — ver STATUS.md.
-   */
-  password: string
-  role: UserRole
-  createdAtISO: string
-}
+/**
+ * O mínimo que a agenda precisa saber de um atendimento para calcular horários.
+ * A coleção `agenda` no Firestore usa exatamente estes campos (sem nome, telefone
+ * ou observação), porque qualquer pessoa autenticada pode ler esses blocos.
+ */
+export type BusySlot = Pick<
+  Appointment,
+  'id' | 'professionalId' | 'dateISO' | 'startMin' | 'durationMin' | 'status'
+>
 
 export interface Session {
   userId: string

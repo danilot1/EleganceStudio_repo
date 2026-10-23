@@ -17,6 +17,7 @@ export function StepReview() {
   const [name, setName] = useState(draft.clientName ?? session?.name ?? '')
   const [note, setNote] = useState(draft.clientNote ?? '')
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const service = findService(draft.serviceId)
   const professional = findProfessional(draft.professionalId)
@@ -93,10 +94,10 @@ export function StepReview() {
 
       {!session ? (
         <section className="card space-y-2">
-          <p className="text-[13px] font-semibold text-ink">Você não está conectada</p>
+          <p className="text-[13px] font-semibold text-ink">Entre para concluir</p>
           <p className="text-[12px] leading-relaxed text-ink-muted">
-            É possível agendar sem conta, mas o agendamento não aparece em “Meus Agendamentos”
-            porque não fica vinculado a um cadastro.
+            O agendamento fica gravado no Firestore do estúdio, vinculado a uma conta. Entre ou
+            crie uma conta para confirmar este horário.
           </p>
           <div className="flex gap-2">
             <Link to="/entrar" className="btn-ghost btn-sm flex-1">
@@ -118,12 +119,18 @@ export function StepReview() {
       <button
         type="button"
         className="btn-primary w-full"
-        onClick={() => {
+        disabled={busy || !session}
+        onClick={async () => {
+          if (!session) {
+            setError('Entre na sua conta para confirmar o agendamento.')
+            return
+          }
           if (!name.trim()) {
             setError('Informe o nome de quem vai ser atendida.')
             return
           }
-          const result = createAppointment({
+          setBusy(true)
+          const result = await createAppointment({
             serviceId: service!.id,
             professionalId: professional!.id,
             dateISO: draft.dateISO!,
@@ -133,6 +140,7 @@ export function StepReview() {
             clientName: name,
             clientNote: note,
           })
+          setBusy(false)
           if (!result.ok || !result.appointment) {
             setError(result.error ?? 'Não foi possível concluir o agendamento.')
             return
@@ -148,7 +156,7 @@ export function StepReview() {
         }}
       >
         <CalendarCheck className="size-4" aria-hidden />
-        Confirmar Agendamento
+        {busy ? 'Confirmando…' : session ? 'Confirmar Agendamento' : 'Entre para confirmar'}
         <ArrowRight className="size-4" aria-hidden />
       </button>
 

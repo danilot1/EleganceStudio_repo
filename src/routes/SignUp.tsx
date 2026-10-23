@@ -20,10 +20,11 @@ export function SignUp() {
   const [accepted, setAccepted] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const strength = passwordStrength(password)
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (password !== confirm) {
       setError('As senhas não conferem.')
@@ -33,7 +34,9 @@ export function SignUp() {
       setError('É necessário aceitar os Termos de Uso e a Política de Privacidade.')
       return
     }
-    const result = signUp({ name, email, phone, password })
+    setBusy(true)
+    const result = await signUp({ name, email, phone, password })
+    setBusy(false)
     if (!result.ok) {
       setError(result.error ?? 'Não foi possível criar a conta.')
       return
@@ -63,8 +66,8 @@ export function SignUp() {
             <Sparkles className="size-4" aria-hidden />
           </div>
           <DemoNotice>
-            Cadastro local de demonstração: os dados ficam apenas neste navegador e a senha não é
-            criptografada. Um sistema real precisa de back-end e hash de senha.
+            A conta é criada no Firebase Authentication: a senha é guardada com hash pelo
+            próprio Firebase, nunca por este código. Nome e telefone vão para o Firestore.
           </DemoNotice>
         </div>
       }
@@ -176,8 +179,8 @@ export function SignUp() {
 
         <FieldError>{error}</FieldError>
 
-        <button type="submit" className="btn-primary w-full">
-          Criar minha conta
+        <button type="submit" className="btn-primary w-full" disabled={busy}>
+          {busy ? 'Criando conta…' : 'Criar minha conta'}
           <ArrowRight className="size-4" aria-hidden />
         </button>
       </form>
