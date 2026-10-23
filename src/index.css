@@ -6,6 +6,8 @@
    ------------------------------------------------------------------ */
 @theme {
   --font-display: 'Playfair Display', 'Times New Roman', Georgia, serif;
+  /* Wordmark da marca: capitais romanas (Trajan), como no cartão do estúdio */
+  --font-brand: 'Cinzel', 'Playfair Display', 'Times New Roman', Georgia, serif;
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --color-canvas: #f6f1e7;
@@ -82,6 +84,34 @@
 
 @layer components {
   /* Rótulo pequeno em caixa alta — usado em quase todas as telas do protótipo */
+  /*
+   * Assinatura visual do cartão: ELEGANCE em capitais romanas com dourado
+   * metálico (gradiente no texto) e STUDIO em caixa alta bem espaçada.
+   */
+  .brand-wordmark {
+    @apply block whitespace-nowrap uppercase;
+    font-family: var(--font-brand);
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: 0.13em;
+    background-image: linear-gradient(180deg, #d5b478 0%, #9a7735 52%, #6f5420 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .brand-sub {
+    @apply block whitespace-nowrap uppercase;
+    font-size: 8px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.46em;
+    color: var(--color-gold-dark);
+    margin-top: 4px;
+    opacity: 0.85;
+  }
+
   .eyebrow {
     @apply font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted;
   }
