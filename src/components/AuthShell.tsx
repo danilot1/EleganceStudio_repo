@@ -44,9 +44,7 @@ export function AuthShell({
 
         <div className="space-y-4 text-center">
           <div className="flex justify-center">
-            <span className="grid size-12 place-items-center rounded-[14px] border border-line bg-surface">
-              <BrandMark />
-            </span>
+            <BrandMark className="size-12" />
           </div>
           <div className="space-y-1.5">
             <h1 className="text-[27px] leading-tight text-ink">{title}</h1>

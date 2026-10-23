@@ -71,10 +71,31 @@ export function BottomNav() {
   )
 }
 
-export function BrandMark() {
+/**
+ * Monograma do cartão do estúdio: "E" em capitais romanas dentro de um duplo
+ * anel dourado.
+ */
+export function BrandMark({ className }: { className?: string }) {
   return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-[10px] border border-line bg-gold-tint font-display text-lg text-gold">
-      E
+    <span
+      className={cx(
+        'relative grid size-9 shrink-0 place-items-center rounded-full border border-gold/45 bg-gold-tint/60',
+        className,
+      )}
+      aria-hidden
+    >
+      <span className="absolute inset-[2px] rounded-full border border-gold/20" />
+      <span className="brand-wordmark text-[16px] leading-none">E</span>
+    </span>
+  )
+}
+
+/** Wordmark EMPILHADO: ELEGANCE sobre STUDIO, como no cartão. */
+export function BrandWordmark() {
+  return (
+    <span className="flex flex-col">
+      <span className="brand-wordmark">Elegance</span>
+      <span className="brand-sub">Studio</span>
     </span>
   )
 }
@@ -90,8 +111,8 @@ export function TopBar({ context }: { context?: string }) {
       <div className="mx-auto flex w-full max-w-[560px] items-center gap-3 px-4 py-3">
         <BrandMark />
         <div className="min-w-0 flex-1">
-          <p className="font-display text-[19px] leading-tight text-ink">EleganceStudio</p>
-          <p className="eyebrow truncate">{context}</p>
+          <BrandWordmark />
+          <p className="eyebrow mt-1 truncate">{context}</p>
         </div>
 
         <button
