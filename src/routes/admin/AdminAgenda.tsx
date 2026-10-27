@@ -40,7 +40,7 @@ export function AdminAgenda() {
 }
 
 function AdminPanel() {
-  const { appointments, agenda, professionals, services, createAppointment } = useAppState()
+  const { appointments, professionals, services, createAppointment } = useAppState()
   const today = todayISO()
   const [tab, setTab] = useState<PanelTab>('agenda')
   const [period, setPeriod] = useState<'hoje' | 'semana'>('hoje')
@@ -106,7 +106,7 @@ function AdminPanel() {
       dateISO: today,
       durationMin: 30,
       professionalId: professional.id,
-      appointments: agenda,
+      appointments,
     })
     return total + slots.filter((slot) => slot.available).length
   }, 0)
@@ -235,13 +235,13 @@ function AdminPanel() {
             type="button"
             className="btn-primary w-full"
             disabled={!newSlot || !selectedNewService}
-            onClick={async () => {
+            onClick={() => {
               if (!newName.trim()) {
                 setNewError('Informe o nome da cliente.')
                 return
               }
               if (!newSlot || !selectedNewService) return
-              const result = await createAppointment({
+              const result = createAppointment({
                 serviceId: selectedNewService.id,
                 professionalId: newProfessionalId,
                 dateISO: newSlot.dateISO,
@@ -265,8 +265,8 @@ function AdminPanel() {
             Criar atendimento confirmado
           </button>
           <DemoNotice>
-            O atendimento é gravado no Firestore e entra como “Confirmado”, como faria a recepção
-            ao atender por telefone. O conflito de horário é checado dentro de uma transação.
+            O atendimento é criado apenas neste navegador e entra como “Confirmado”, como faria a
+            recepção ao atender por telefone.
           </DemoNotice>
         </section>
       ) : null}
@@ -392,9 +392,9 @@ function AdminPanel() {
             )}
 
             <DemoNotice>
-              Indicadores calculados a partir dos atendimentos gravados no Firestore — por isso
-              os números mudam quando você cancela, conclui ou reagenda. No protótipo eles eram
-              valores fixos na tela.
+              Indicadores calculados a partir dos atendimentos registrados neste navegador —
+              por isso os números mudam quando você cancela, conclui ou reagenda. No protótipo
+              eles eram valores fixos na tela.
             </DemoNotice>
           </section>
         </>

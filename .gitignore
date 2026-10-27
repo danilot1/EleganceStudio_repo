@@ -12,11 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Configuração local do Firebase (cada pessoa usa o próprio projeto)
-.env
-.env.local
-.env.*.local
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

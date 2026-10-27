@@ -38,7 +38,6 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
   const [fitInName, setFitInName] = useState('')
   const [fitInError, setFitInError] = useState<string | null>(null)
   const [editMessage, setEditMessage] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
 
   const service = findService(appointment.serviceId)
   const professional = findProfessional(appointment.professionalId)
@@ -103,13 +102,12 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
             <button
               type="button"
               className="btn-outline btn-sm w-full"
-              onClick={async () => {
-                const result = await setAppointmentStatus(
+              onClick={() =>
+                setAppointmentStatus(
                   appointment.id,
                   appointment.status === 'em-atendimento' ? 'concluido' : 'em-atendimento',
                 )
-                setActionError(result.ok ? null : (result.error ?? 'Não foi possível atualizar.'))
-              }}
+              }
             >
               {appointment.status === 'em-atendimento' ? (
                 <>
@@ -158,12 +156,6 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
         </div>
       </div>
 
-      {actionError ? (
-        <p role="alert" className="text-[11px] font-medium text-danger">
-          {actionError}
-        </p>
-      ) : null}
-
       {showDetails ? (
         <div className="space-y-1.5 rounded-[14px] border border-line bg-surface-2 p-3 text-[12px] text-ink-soft">
           <p>
@@ -200,10 +192,7 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
                     key={status}
                     type="button"
                     className={cx('chip', appointment.status === status && 'chip-active')}
-                    onClick={async () => {
-                      const result = await setAppointmentStatus(appointment.id, status)
-                      setActionError(result.ok ? null : (result.error ?? 'Não foi possível atualizar.'))
-                    }}
+                    onClick={() => setAppointmentStatus(appointment.id, status)}
                   >
                     {status === 'em-atendimento' ? 'Em Atendimento' : status === 'aguardando' ? 'Aguardando' : status === 'concluido' ? 'Concluído' : status === 'cancelado' ? 'Cancelado' : 'Confirmado'}
                   </button>
@@ -215,10 +204,9 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
               <button
                 type="button"
                 className="btn-outline btn-sm"
-                onClick={async () => {
-                  const result = await setAppointmentStatus(appointment.id, 'confirmado')
+                onClick={() => {
+                  setAppointmentStatus(appointment.id, 'confirmado')
                   setNoShowError(null)
-                  setActionError(result.ok ? null : (result.error ?? 'Não foi possível reverter.'))
                 }}
               >
                 <RotateCcw className="size-3.5" aria-hidden />
@@ -228,8 +216,8 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
               <button
                 type="button"
                 className="btn-outline btn-sm"
-                onClick={async () => {
-                  const result = await registerNoShow(appointment.id)
+                onClick={() => {
+                  const result = registerNoShow(appointment.id)
                   setNoShowError(result.ok ? null : (result.error ?? 'Não foi possível registrar.'))
                 }}
               >
@@ -260,10 +248,7 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
                   key={method}
                   type="button"
                   className="chip"
-                  onClick={async () => {
-                    const result = await registerPayment(appointment.id, method)
-                    setActionError(result.ok ? null : (result.error ?? 'Não foi possível registrar o pagamento.'))
-                  }}
+                  onClick={() => registerPayment(appointment.id, method)}
                 >
                   <Banknote className="size-3.5" aria-hidden />
                   {PAYMENT_LABEL[method]}
@@ -278,8 +263,8 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
               professionalId={appointment.professionalId}
               durationMin={appointment.durationMin}
               ignoreAppointmentId={appointment.id}
-              onChange={async (selection) => {
-                const result = await rescheduleAppointment(
+              onChange={(selection) => {
+                const result = rescheduleAppointment(
                   appointment.id,
                   selection.dateISO,
                   selection.startMin,
@@ -316,13 +301,13 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
             <button
               type="button"
               className="btn-primary btn-sm flex-1"
-              onClick={async () => {
+              onClick={() => {
                 const name = fitInName.trim()
                 if (!name) {
                   setFitInError('Informe o nome da cliente.')
                   return
                 }
-                const result = await createAppointment({
+                const result = createAppointment({
                   serviceId: appointment.serviceId,
                   professionalId: appointment.professionalId,
                   dateISO: appointment.dateISO,
@@ -347,7 +332,7 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
             </button>
           </div>
           <DemoNotice>
-            O encaixe grava o atendimento no Firestore e já entra como confirmado, como faria a
+            O encaixe cria o atendimento localmente e já o marca como confirmado, como faria a
             recepção. Não há envio de mensagem para a cliente.
           </DemoNotice>
         </div>

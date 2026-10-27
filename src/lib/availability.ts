@@ -1,4 +1,4 @@
-import { freesSlot, type BusySlot } from '../lib/types'
+import { freesSlot, type Appointment } from '../lib/types'
 import { fromISODate, isPast, minutesToTime, todayISO } from './dates'
 
 /** Expediente de cada profissional. Domingo fechado. */
@@ -36,7 +36,7 @@ function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): b
 }
 
 /** Agendamentos que ocupam a agenda (cancelados e faltas liberam o horário). */
-function busyBlocks(appointments: BusySlot[], professionalId: string): WorkWindow[] {
+function busyBlocks(appointments: Appointment[], professionalId: string): WorkWindow[] {
   return appointments
     .filter((item) => item.professionalId === professionalId && !freesSlot(item.status))
     .map((item) => ({ startMin: item.startMin, endMin: item.startMin + item.durationMin }))
@@ -52,7 +52,7 @@ export function buildDaySlots(options: {
   dateISO: string
   durationMin: number
   professionalId: string
-  appointments: BusySlot[]
+  appointments: Appointment[]
   ignoreAppointmentId?: string
 }): DaySlot[] {
   const { dateISO, durationMin, professionalId } = options
@@ -89,7 +89,7 @@ export function countAvailableSlots(options: {
   dateISO: string
   durationMin: number
   professionalId: string
-  appointments: BusySlot[]
+  appointments: Appointment[]
 }): number {
   return buildDaySlots(options).filter((slot) => slot.available).length
 }
@@ -98,7 +98,7 @@ export function isDayFull(options: {
   dateISO: string
   durationMin: number
   professionalId: string
-  appointments: BusySlot[]
+  appointments: Appointment[]
 }): boolean {
   const slots = buildDaySlots(options)
   if (slots.length === 0) return true // fechado
@@ -111,7 +111,7 @@ export function hasConflict(options: {
   startMin: number
   durationMin: number
   professionalId: string
-  appointments: BusySlot[]
+  appointments: Appointment[]
   ignoreAppointmentId?: string
 }): boolean {
   const end = options.startMin + options.durationMin

@@ -15,15 +15,12 @@ export function Login() {
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [oauthNotice, setOauthNotice] = useState(false)
-  const [busy, setBusy] = useState(false)
 
   const from = (location.state as { from?: string } | null)?.from
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setBusy(true)
-    const result = await login(email, password, remember)
-    setBusy(false)
+    const result = login(email, password, remember)
     if (!result.ok) {
       setError(result.error ?? 'Não foi possível entrar.')
       return
@@ -44,8 +41,8 @@ export function Login() {
             Seus dados e preferências preservados sob absoluto sigilo.
           </InfoNote>
           <DemoNotice>
-            O login é feito pelo Firebase Authentication (e-mail e senha). A senha nunca passa
-            por este código: quem guarda e protege a credencial é o Firebase.
+            O login desta demonstração é local: as contas ficam no próprio navegador, sem
+            servidor de autenticação. A senha não é criptografada.
           </DemoNotice>
         </div>
       }
@@ -104,8 +101,8 @@ export function Login() {
 
         <FieldError>{error}</FieldError>
 
-        <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {busy ? 'Entrando…' : 'Entrar na conta'}
+        <button type="submit" className="btn-primary w-full">
+          Entrar na conta
           <ArrowRight className="size-4" aria-hidden />
         </button>
 
@@ -156,8 +153,7 @@ export function Login() {
       <section className="card space-y-2">
         <p className="eyebrow">Acesso de demonstração</p>
         <p className="text-[12px] leading-relaxed text-ink-muted">
-          Contas do roteiro de teste. Elas precisam existir no Firebase Authentication do seu
-          projeto — os botões apenas preenchem o formulário:
+          Contas criadas automaticamente para testar o sistema:
         </p>
         <div className="space-y-1.5 text-[12px]">
           <button
@@ -191,10 +187,7 @@ export function Login() {
             <span className="badge bg-gold-tint text-gold">usar</span>
           </button>
         </div>
-        <p className="text-[11px] text-ink-muted">
-          Senha das duas contas no roteiro: elegance123. A conta de gestão só abre o painel se o
-          documento dela no Firestore tiver role = "admin"; sem isso, entra como cliente.
-        </p>
+        <p className="text-[11px] text-ink-muted">Senha das duas contas: elegance123</p>
       </section>
     </AuthShell>
   )

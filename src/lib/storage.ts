@@ -1,47 +1,47 @@
-import { addDaysISO, todayISO } from '../lib/dates'
-import type { Appointment, UserRole } from '../lib/types'
+import type { Appointment, User } from './types'
+import { addDaysISO, daysBetween, todayISO } from './dates'
 
 /**
- * Dados de exemplo dos testes.
+ * Persistência local do protótipo.
  *
- * Vivem aqui, e não em `src/`, porque nada no app de produção importa este arquivo:
- * o banco real é o Firestore. A implementação em memória do back-end (fakeBackend)
- * usa estes dados para que os testes de tela tenham uma agenda coerente.
+ * IMPORTANTE: isto NÃO é um banco de dados. É `localStorage` do navegador, usado
+ * apenas para que os fluxos (agendar, cancelar, mudar status) funcionem de verdade
+ * durante a demonstração. Os dados vivem só na máquina de quem abre o site.
+ * Ver STATUS.md para a lista do que precisa de back-end real.
  */
 
-export interface DemoAccount {
-  userId: string
-  name: string
-  email: string
-  phone: string
-  password: string
-  role: UserRole
+const STORAGE_KEY = 'elegance-studio:v1'
+
+export interface Database {
+  version: 1
+  /** Data em que a demonstração foi gerada, usada para deslocar os dados de exemplo. */
+  seedDateISO: string
+  users: User[]
+  appointments: Appointment[]
 }
 
-/** As mesmas contas que o roteiro de teste manda criar no Firebase Authentication. */
-export const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    userId: 'user-mariana',
-    name: 'Mariana Silveira',
-    email: 'mariana@exemplo.com',
-    phone: '(11) 98765-4321',
-    password: 'elegance123',
-    role: 'cliente',
-  },
-  {
-    userId: 'user-gestao',
-    name: 'Gestão Elegance',
-    email: 'gestao@elegance.com',
-    phone: '(21) 3232-1010',
-    password: 'elegance123',
-    role: 'admin',
-  },
-]
-
-/** Agenda de exemplo, deslocada para hoje (a mesma carga que o protótipo exibia). */
-export function createSeedAppointments(): Appointment[] {
-  const today = todayISO()
-  return seedAppointments(today)
+function seedUsers(): User[] {
+  const createdAtISO = new Date().toISOString()
+  return [
+    {
+      id: 'user-mariana',
+      name: 'Mariana Silveira',
+      email: 'mariana@exemplo.com',
+      phone: '(11) 98765-4321',
+      password: 'elegance123',
+      role: 'cliente',
+      createdAtISO,
+    },
+    {
+      id: 'user-gestao',
+      name: 'Gestão Elegance',
+      email: 'gestao@elegance.com',
+      phone: '(21) 3232-1010',
+      password: 'elegance123',
+      role: 'admin',
+      createdAtISO,
+    },
+  ]
 }
 
 function seedAppointments(today: string): Appointment[] {
@@ -361,3 +361,68 @@ function seedAppointments(today: string): Appointment[] {
   ]
 }
 
+export function createSeededDatabase(): Database {
+  const today = todayISO()
+  return {
+    version: 1,
+    seedDateISO: today,
+    users: seedUsers(),
+    appointments: seedAppointments(today),
+  }
+}
+
+/**
+ * Mantém a demonstração útil: se o site for aberto em outro dia, os agendamentos de
+ * exemplo são deslocados para continuarem caindo "hoje" e nos próximos dias.
+ * Registros criados pelo usuário (seeded !== true) nunca são alterados.
+ */
+function shiftSeedsToToday(db: Database): Database {
+  const today = todayISO()
+  const delta = daysBetween(db.seedDateISO, today)
+  if (delta === 0) return db
+
+  const appointments = db.appointments.map((item) =>
+    item.seeded ? { ...item, dateISO: addDaysISO(item.dateISO, delta) } : item,
+  )
+
+  // Usuários criados na demonstração continuam válidos, nada a fazer aqui.
+  return { ...db, seedDateISO: today, appointments }
+}
+
+function readFromStorage(): Database | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Database
+    if (parsed.version !== 1 || !Array.isArray(parsed.users) || !Array.isArray(parsed.appointments)) {
+      return null
+    }
+    return parsed
+  } catch {
+    // Storage indisponível (modo privado) ou JSON corrompido: recomeça do zero.
+    return null
+  }
+}
+
+export function loadDatabase(): Database {
+  const stored = readFromStorage()
+  const db = stored ? shiftSeedsToToday(stored) : createSeededDatabase()
+  if (!stored || JSON.stringify(db) !== JSON.stringify(stored)) {
+    saveDatabase(db)
+  }
+  return db
+}
+
+export function saveDatabase(db: Database): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(db))
+  } catch {
+    // Sem storage: a sessão continua em memória durante a navegação.
+  }
+}
+
+export function resetDatabase(): Database {
+  const db = createSeededDatabase()
+  saveDatabase(db)
+  return db
+}

@@ -122,9 +122,8 @@ function MyAppointmentsContent({ userId, name }: { userId: string; name: string 
       </section>
 
       <DemoNotice>
-        Os agendamentos vêm do Firestore, vinculados à sua conta: abrir o site em outro
-        computador mostra o mesmo histórico. O cancelamento e o reagendamento são gravados na
-        hora — e a gestão vê a mudança sem recarregar a página.
+        Os agendamentos listados vêm do armazenamento local do navegador. Não há banco de dados:
+        abrir o site em outro computador ou limpar os dados do navegador apaga o histórico.
       </DemoNotice>
     </div>
   )

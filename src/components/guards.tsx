@@ -6,11 +6,9 @@ import type { UserRole } from '../lib/types'
 import { DemoNotice } from './ui'
 
 /**
- * Proteção de rota.
- *
- * O papel (cliente/gestão) vem do documento `users/{uid}` no Firestore, e as regras de
- * segurança repetem essa checagem no servidor: esconder a tela aqui é navegação, não
- * a única barreira. Ver `firestore.rules`.
+ * Proteção de rota no lado do cliente.
+ * ATENÇÃO: isto organiza a navegação, mas NÃO é segurança — sem servidor, qualquer
+ * pessoa pode alterar o estado no navegador. Ver STATUS.md.
  */
 export function RequireRole({
   role,
@@ -19,20 +17,9 @@ export function RequireRole({
   role?: UserRole
   children: ReactNode
 }) {
-  const { session, ready, logout } = useAppState()
+  const { session, logout } = useAppState()
   const location = useLocation()
   const navigate = useNavigate()
-
-  // Enquanto o Firebase não responde quem está conectado, não dá para decidir nada:
-  // redirecionar aqui mandaria para o login toda sessão válida ao recarregar a página.
-  if (!ready) {
-    return (
-      <section className="card space-y-1" aria-busy="true">
-        <p className="eyebrow">Conectando</p>
-        <p className="text-[13px] text-ink-muted">Verificando sua sessão no Firebase…</p>
-      </section>
-    )
-  }
 
   if (!session) {
     return <Navigate to="/entrar" replace state={{ from: location.pathname }} />
@@ -53,7 +40,8 @@ export function RequireRole({
           type="button"
           className="btn-outline btn-sm mx-auto"
           onClick={() => {
-            void logout().then(() => navigate('/entrar', { state: { from: '/painel' } }))
+            logout()
+            navigate('/entrar', { state: { from: '/painel' } })
           }}
         >
           <LogOut className="size-3.5" aria-hidden />
@@ -63,8 +51,7 @@ export function RequireRole({
           Voltar para o início
         </Link>
         <DemoNotice>
-          O perfil de gestão é o campo role = "admin" no documento do usuário no Firestore. Sem
-          esse campo, a conta entra como cliente — inclusive aqui.
+          A verificação de perfil acontece só no navegador: não substitui autenticação real.
         </DemoNotice>
       </section>
     )

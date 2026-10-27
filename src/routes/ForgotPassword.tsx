@@ -14,16 +14,13 @@ export function ForgotPassword() {
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [found, setFound] = useState(false)
-  const [busy, setBusy] = useState(false)
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    setBusy(true)
-    const result = await requestPasswordReset(value, channel)
-    setBusy(false)
+    const result = requestPasswordReset(value)
     if (!result.ok) {
       setFound(false)
-      setError(result.error ?? 'Não foi possível enviar as instruções.')
+      setError(result.error ?? 'Não foi possível verificar o contato.')
       return
     }
     setError(null)
@@ -108,21 +105,20 @@ export function ForgotPassword() {
 
         <FieldError>{error}</FieldError>
 
-        <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {busy ? 'Enviando…' : 'Enviar instruções de recuperação'}
+        <button type="submit" className="btn-primary w-full">
+          Enviar instruções de recuperação
           <ArrowRight className="size-4" aria-hidden />
         </button>
 
         {found ? (
           <div className="space-y-2">
             <SuccessNote>
-              Pedido registrado. Se existir uma conta com este e-mail, o Firebase acabou de
-              enviar o link de redefinição.
+              Conta encontrada. As instruções seriam enviadas por{' '}
+              {channel === 'email' ? 'e-mail' : 'WhatsApp'}.
             </SuccessNote>
             <DemoNotice>
-              O envio é real, feito pelo Firebase Authentication. Confira a caixa de entrada e o
-              spam (o link expira em uma hora). Recuperação por WhatsApp não existe: o Firebase
-              só envia por e-mail.
+              Nada foi enviado de verdade: este protótipo não tem servidor de e-mail nem
+              integração com WhatsApp. A tela valida o contato no cadastro local e para por aí.
             </DemoNotice>
           </div>
         ) : null}
