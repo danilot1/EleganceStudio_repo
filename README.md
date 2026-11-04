@@ -15,9 +15,10 @@ Cobre os dois lados do sistema:
 
 - **Cliente:** Home, catálogo de serviços, agendamento em 4 etapas, criar conta, entrar,
   recuperar senha e "Meus Agendamentos" (próximos e histórico).
-- **Gestão:** Painel Executivo com indicadores, linha do tempo do dia, ações de início/conclusão
-  de atendimento, registro de pagamento, reagendamento, encaixe de cliente e registro de falta
-  (no-show) com taxa calculada por período.
+- **Gestão:** Painel Executivo com calendário (mês, semana e dia), indicadores do dia, agenda do
+  dia com ações de início/conclusão de atendimento, registro de pagamento, reagendamento,
+  encaixe de cliente, registro de falta (no-show), consulta de clientes e visão da equipe e do
+  catálogo.
 
 > Leia também o **[STATUS.md](./STATUS.md)**: ele separa o que funciona de verdade do que é
 > apenas demonstração (não há back-end neste projeto). Nada é simulado como se estivesse pronto.
@@ -78,6 +79,21 @@ O mapa completo de rotas está em `src/App.tsx`:
 /painel                Painel Executivo (exige perfil de gestão)
 /entrar  /criar-conta  /recuperar-senha               Acesso
 ```
+
+## Agenda da gestão
+
+O calendário fica em `/painel` (entre com `gestao@elegance.com`):
+
+- **Mês:** grade de domingo a sábado com a quantidade de vagas de cada dia, setas para trocar de
+  mês e botão "Hoje".
+- **Semana:** os sete dias com os atendimentos de cada um.
+- **Dia:** grade de 30 minutos por profissional. Verde = livre, vermelho = ocupado, cinza =
+  fechado (fora do expediente, almoço ou horário que já passou). Um bloco verde abre o
+  atendimento de balcão já preenchido com aquele horário.
+
+O horário reservado sai da disponibilidade do cliente no mesmo instante, porque as duas telas
+leem os mesmos dados (`src/lib/agenda.ts` e `src/lib/availability.ts`). A grade é responsiva:
+no celular o mês usa sete colunas compactas e a visão Dia rola na horizontal, sem cortar texto.
 
 ## Como trocar as cores, fontes e fotos
 

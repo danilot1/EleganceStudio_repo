@@ -5,9 +5,14 @@
    São estimativas: ajustar aqui muda todas as telas de uma vez.
    ------------------------------------------------------------------ */
 @theme {
-  --font-display: 'Playfair Display', 'Times New Roman', Georgia, serif;
+  /*
+   * Serifada dos títulos: Fraunces tem curvas suaves e eixo óptico, então fica acolhedora
+   * em textos grandes sem perder o ar sofisticado do estúdio.
+   * Para voltar a uma serifada mais clássica, troque aqui e no <link> do index.html.
+   */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   /* Wordmark da marca: capitais romanas (Trajan), como no cartão do estúdio */
-  --font-brand: 'Cinzel', 'Playfair Display', 'Times New Roman', Georgia, serif;
+  --font-brand: 'Cinzel', 'Fraunces', Georgia, serif;
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --color-canvas: #f6f1e7;
@@ -60,6 +65,7 @@
   h2,
   h3 {
     font-family: var(--font-display);
+    font-optical-sizing: auto;
     font-weight: 500;
     letter-spacing: -0.01em;
   }

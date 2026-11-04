@@ -16,19 +16,24 @@ do que está: o front-end está completo e funcional, mas **não existe back-end
 | Recuperação de senha | `src/routes/ForgotPassword.tsx` | valida o contato no cadastro local (nenhuma mensagem sai) |
 | Cancelar e reagendar (cliente) | `src/components/AppointmentCard.tsx` | reagendamento recalcula disponibilidade real |
 | Painel Executivo | `src/routes/admin/AdminAgenda.tsx` | indicadores calculados a partir dos atendimentos |
+| Calendário da agenda (mês, semana e dia) | `src/components/AgendaCalendar.tsx`, `src/lib/agenda.ts` | grade domingo–sábado, setas de período, contagem de vagas por dia e blocos livres/ocupados/fechados |
+| Clique no bloco livre abre o atendimento | `src/routes/admin/AdminAgenda.tsx` | já preenchido com profissional, data e horário do bloco |
+| Consulta de clientes pela gestão | `src/routes/admin/AdminAgenda.tsx` | nome, contato, atendimentos concluídos, última visita e próximo agendamento |
+| Bloqueio de atendimento fora do expediente | `src/lib/availability.ts` | recusa serviço cuja duração terminaria depois do fechamento |
 | Iniciar / concluir / cancelar atendimento | `src/components/TimelineCard.tsx` | muda o status de verdade |
 | Registrar pagamento (PIX, débito, crédito, dinheiro) | `src/components/TimelineCard.tsx` | grava forma de pagamento no atendimento |
 | Encaixe de cliente na vaga cancelada | `src/components/TimelineCard.tsx` | cria atendimento de balcão já confirmado |
 | Registro de falta (no-show) | `src/components/TimelineCard.tsx`, `src/lib/noShow.ts` | só depois do horário marcado; a falta libera a vaga na agenda e pode ser revertida |
 | Taxa de no-show por período | `src/routes/admin/AdminAgenda.tsx` | calculada sobre falta ÷ atendimentos com desfecho do dia ou da semana |
 | Novo atendimento pela gestão | `src/routes/admin/AdminAgenda.tsx` | botão "+ Novo" com escolha de serviço, profissional e horário |
-| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 38 testes (telas, fluxo de agendamento, gestão, autenticação, agenda e no-show) |
+| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 51 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda e no-show) |
 
 ## 2. Existe, mas é demonstração (NÃO é produção)
 
 | Item | Como está hoje | O que falta para ser real |
 | --- | --- | --- |
 | Persistência | `localStorage` do navegador (`src/lib/storage.ts`) | banco de dados + API (ex.: PostgreSQL/MySQL no back-end) |
+| Conflito de horário | checado antes de gravar, com o estado sincronizado entre abas do mesmo navegador | transação no servidor: duas gravações simultâneas em aparelhos diferentes ainda podem competir |
 | Autenticação | usuário e senha gravados no `localStorage`, senha em texto puro | servidor de autenticação, hash de senha (bcrypt/argon2), sessão com cookie/token |
 | Perfil de admin | verificado no navegador (`src/components/guards.tsx`) | autorização no servidor — hoje qualquer pessoa poderia alterar o estado local |
 | Dados de exemplo | carga inicial em `src/lib/storage.ts`, deslocada para "hoje" a cada dia | dados reais do estúdio |
@@ -41,6 +46,8 @@ do que está: o front-end está completo e funcional, mas **não existe back-end
 Os controles abaixo existem no protótipo, mas foram deixados **explicitamente** como aviso na
 tela em vez de simular sucesso:
 
+- **Edição de serviços pela gestão** — a aba Serviços mostra duração e preço do catálogo, mas
+  não salva alterações: os valores vêm de `src/data/catalog.ts`.
 - **Login com Apple e Google** — exige OAuth/OpenID com um provedor de identidade.
 - **Recuperação de senha por e-mail ou WhatsApp** — exige servidor de e-mail e API do WhatsApp.
 - **Lembretes e notificações** — exigem serviço de mensagens e jobs agendados (o sino mostra o aviso).
@@ -85,10 +92,11 @@ tela em vez de simular sucesso:
    quando você cancela, conclui ou reagenda.
 10. **Fontes e cores aproximadas.** Os tokens (`src/index.css`) foram estimados lendo os
     prints: fundo creme `#F6F1E7`, acento bronze `#8B6B2E`, títulos em serif
-    (Playfair Display) e corpo em Inter. Não são os valores oficiais do design.
-11. **Abas de Serviços e Profissionais do painel** aparecem cortadas no print; foram
-    implementadas como listas de leitura, sem cadastro/edição de serviços (o protótipo não
-    define esse fluxo).
+    (Fraunces) e corpo em Inter. Não são os valores oficiais do design. A wordmark da logo
+    usa Cinzel (capitais romanas), mantida por ter sido ajustada à foto de referência.
+11. **Abas de Serviços, Clientes e Profissionais do painel** aparecem cortadas no print; foram
+    implementadas como leitura (catálogo, contatos e equipe), sem cadastro/edição de serviços
+    (o protótipo não define esse fluxo).
 12. **Agendamento sem login é permitido.** Um agendamento feito deslogado não aparece em "Meus
     Agendamentos", porque não fica vinculado a uma conta — a tela de revisão avisa isso.
 13. **Falta não é cancelamento.** A falta é registrada pela gestão depois do horário marcado,
@@ -96,6 +104,14 @@ tela em vez de simular sucesso:
     denominador só os atendimentos com desfecho (concluídos + faltas) do período — agendamentos
     futuros ainda podem virar presença ou falta, então não entram na conta. Cancelamentos
     aparecem no resumo, mas não entram na taxa.
+14. **Calendário em três visões.** A agenda da gestão tem visão Mês (grade de domingo a sábado
+    com vagas por dia), Semana e Dia (grade de 30 minutos por profissional). Verde = livre,
+    vermelho = ocupado, cinza = fechado (fora do expediente, almoço ou horário que já passou).
+    O domingo continua sem expediente e o sábado fecha às 14h.
+15. **Agenda sincronizada entre telas.** Gestão e cliente leem a mesma fonte de disponibilidade,
+    e o estado é recarregado quando outra aba grava (`storage`). Uma reserva feita em outra aba
+    passa a ocupar o horário imediatamente — mas duas gravações no mesmo instante, em aparelhos
+    diferentes, ainda precisam de um back-end com transação para serem realmente atômicas.
 
 ## 5. Próximos passos sugeridos
 
