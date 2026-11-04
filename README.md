@@ -41,6 +41,7 @@ npm run typecheck   # só a checagem de tipos
 npm run build       # gera a versão de produção em dist/
 npm test            # roda os testes (Vitest + Testing Library)
 npm run lint        # análise estática (oxlint)
+npm run test:rules  # testes das regras no emulador (precisa de Java)
 npm run preview     # serve o resultado do build
 ```
 
@@ -63,7 +64,7 @@ qual implementação responde — `local` hoje, `firebase` nas próximas fases d
 | 1. Camada de dados isolada (`src/lib/backend`) | concluída |
 | 2. Autenticação real (Firebase Auth) | concluída — login, cadastro, recuperação por e-mail e "Lembrar-me" |
 | 3. Agenda transacional no Firestore | concluída — `agenda/{profissional}__{dia}` serializa a reserva |
-| 4. Security Rules + testes de regra | regras em `firestore.rules`; testes pendentes |
+| 4. Security Rules + testes de regra | concluída — 17 testes no emulador (`npm run test:rules`) |
 | 5. Seed do catálogo e dos dados de exemplo | pendente |
 | 6. Publicação das rules | pendente |
 

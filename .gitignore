@@ -29,3 +29,8 @@ dist-ssr
 # Configuração local do Firebase (nunca versionar).
 .env
 .env.local
+
+# Logs do emulador do Firebase
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

@@ -29,7 +29,8 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 | Novo atendimento pela gestão | `src/routes/admin/AdminAgenda.tsx` | botão "+ Novo" com escolha de serviço, profissional e horário |
 | Camada de dados trocável | `src/lib/backend/` | contrato único (`Backend`) com implementação local e operações assíncronas; o adaptador Firebase entra pelo mesmo contrato, sem tocar em nenhuma tela |
 | Gestão de serviços e horários | `src/routes/admin/AdminAgenda.tsx`, `src/lib/backend/local.ts` | a gestão ajusta duração, preço e ativa/desativa cada serviço; a nova duração passa a reservar os blocos da agenda e a montar os horários do agendamento |
-| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 51 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda e no-show) |
+| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 63 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda, no-show e documento de agenda) |
+| Verificação das regras do Firestore | `tests/rules.test.ts` | 17 testes no emulador (`npm run test:rules`): dono do agendamento, convidada, autopromoção a gestão e catálogo restrito |
 
 ## 2. Existe, mas é demonstração (NÃO é produção)
 
