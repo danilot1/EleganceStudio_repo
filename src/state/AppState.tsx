@@ -13,7 +13,9 @@ import {
   SERVICE_GROUPS,
   SERVICES,
 } from '../data/catalog'
-import { backend } from '../lib/backend'
+import { backendReady, currentBackend } from '../lib/backend'
+import { todayISO } from '../lib/dates'
+import { isFirebaseConfigured } from '../lib/firebaseConfig'
 import type {
   ActionResult,
   CreateResult,
@@ -82,7 +84,19 @@ function readSession(): Session | null {
  * e é substituído pelos dados do backend assim que ele responde.
  */
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  const [db, setDb] = useState<Database>(() => loadDatabase())
+  // Com Firebase configurado, começar com a carga de exemplo local faria a agenda real
+  // piscar atendimentos fictícios antes do primeiro snapshot do servidor.
+  const [db, setDb] = useState<Database>(() =>
+    isFirebaseConfigured
+      ? {
+          version: 1,
+          seedDateISO: todayISO(),
+          users: [],
+          appointments: [],
+          serviceOverrides: {},
+        }
+      : loadDatabase(),
+  )
   const [session, setSession] = useState<Session | null>(() => readSession())
 
   // O catálogo base é `data/catalog.ts`; a gestão só grava ajustes por serviço. Derivar
@@ -102,11 +116,29 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    // A assinatura cobre os três casos — gravação nesta aba, em outra aba e no servidor —
-    // e já entrega o snapshot atual. Antes existiam dois caminhos (efeito de save e
-    // evento `storage`), e a leitura inicial assíncrona podia sobrescrever uma reserva
-    // feita logo depois de a tela abrir.
-    return backend.subscribe((next) => setDb(next))
+    let alive = true
+    let stopData = () => {}
+    let stopSession = () => {}
+
+    // O backend definitivo pode chegar depois: o Firebase é carregado sob demanda.
+    void backendReady().then((api) => {
+      if (!alive) return
+      stopData = api.subscribe((next) => setDb(next))
+      // Só o Firebase avisa a sessão por fora (token renovado, saída em outra aba).
+      if (api.subscribeSession) {
+        stopSession = api.subscribeSession((next) => {
+          // Sem regravar o storage: a sessão restaurada mantém a escolha original de
+          // "Lembrar-me" feita no login.
+          setSession(next)
+        })
+      }
+    })
+
+    return () => {
+      alive = false
+      stopData()
+      stopSession()
+    }
   }, [])
 
   /**
@@ -129,7 +161,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string, remember = true): Promise<ActionResult> => {
-      const result = await backend.signIn(email, password)
+      const result = await currentBackend().signIn(email, password, remember)
       if (result.ok && result.session) persistSession(result.session, remember)
       return { ok: result.ok, error: result.error }
     },
@@ -138,7 +170,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(
     async (input: SignUpInput): Promise<ActionResult> => {
-      const result = await backend.signUp(input)
+      const result = await currentBackend().signUp(input)
       if (result.ok && result.session) persistSession(result.session)
       return { ok: result.ok, error: result.error }
     },
@@ -147,51 +179,51 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     persistSession(null)
-    void backend.signOut()
+    void currentBackend().signOut()
   }, [persistSession])
 
   const requestPasswordReset = useCallback(
-    (identifier: string): Promise<ActionResult> => backend.requestPasswordReset(identifier),
+    (identifier: string): Promise<ActionResult> => currentBackend().requestPasswordReset(identifier),
     [],
   )
 
   const createAppointment = useCallback(
     (input: NewAppointmentInput): Promise<CreateResult> =>
-      backend.createAppointment(input, session),
+      currentBackend().createAppointment(input, session),
     [session],
   )
 
   const setAppointmentStatus = useCallback(
     (id: string, status: AppointmentStatus): Promise<void> =>
-      backend.setAppointmentStatus(id, status),
+      currentBackend().setAppointmentStatus(id, status),
     [],
   )
 
   const registerNoShow = useCallback(
-    (id: string): Promise<ActionResult> => backend.registerNoShow(id),
+    (id: string): Promise<ActionResult> => currentBackend().registerNoShow(id),
     [],
   )
 
   const registerPayment = useCallback(
-    (id: string, method: PaymentMethod): Promise<void> => backend.registerPayment(id, method),
+    (id: string, method: PaymentMethod): Promise<void> => currentBackend().registerPayment(id, method),
     [],
   )
 
   const rescheduleAppointment = useCallback(
     (id: string, dateISO: string, startMin: number): Promise<ActionResult> =>
-      backend.rescheduleAppointment(id, dateISO, startMin),
+      currentBackend().rescheduleAppointment(id, dateISO, startMin),
     [],
   )
 
   const updateService = useCallback(
     (id: string, patch: ServicePatch): Promise<ActionResult> =>
-      backend.updateService(id, patch),
+      currentBackend().updateService(id, patch),
     [],
   )
 
   const resetDemo = useCallback(() => {
     persistSession(null)
-    void backend.resetDemo()
+    void currentBackend().resetDemo()
   }, [persistSession])
 
   const value = useMemo<AppStateValue>(

@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Regras do EleganceStudio.
+//
+// Princípio: negar tudo por padrão. O papel de gestão NÃO vem do navegador — é lido do
+// documento users/{uid}, que só o próprio usuário cria (sempre como cliente) e nunca
+// promove a si mesmo. A fase 4 do plano acrescenta os testes automatizados destas regras.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function ownsAppointment(data) {
+      return signedIn() && data.clientUserId == request.auth.uid;
+    }
+
+    match /users/{uid} {
+      // A gestão consulta os contatos das clientes; cada pessoa lê o próprio perfil.
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // Cadastro sempre nasce como cliente — ninguém se promove a gestão.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'cliente';
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isAdmin() || ownsAppointment(resource.data);
+      // Agendamento sem conta (convidada) continua permitido, como no protótipo local;
+      // com conta, o vínculo precisa ser do próprio usuário.
+      allow create: if (isAdmin())
+        || (request.resource.data.clientUserId == null)
+        || (signedIn() && request.resource.data.clientUserId == request.auth.uid);
+      allow update: if isAdmin()
+        || (ownsAppointment(resource.data)
+          && request.resource.data.clientUserId == resource.data.clientUserId);
+      allow delete: if isAdmin();
+    }
+
+    // Ajustes de duração/preço/visibilidade: catálogo é público para leitura, escrita
+    // apenas da gestão.
+    match /serviceOverrides/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -37,8 +37,8 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 | --- | --- | --- |
 | Persistência | `localStorage` do navegador (`src/lib/backend/local.ts`) | adaptador Firestore (fase 3); a interface já está pronta e as telas não mudam |
 | Conflito de horário | checado antes de gravar, com o estado sincronizado entre abas do mesmo navegador | transação no servidor: duas gravações simultâneas em aparelhos diferentes ainda podem competir |
-| Autenticação | usuário e senha gravados no `localStorage`, senha em texto puro | servidor de autenticação, hash de senha (bcrypt/argon2), sessão com cookie/token |
-| Perfil de admin | verificado no navegador (`src/components/guards.tsx`) | autorização no servidor — hoje qualquer pessoa poderia alterar o estado local |
+| Autenticação | modo local: usuário e senha no `localStorage`, senha em texto puro; com `.env`, o Firebase Auth assume (a senha nunca passa pelo Firestore) | no modo local, servidor de autenticação com hash de senha |
+| Perfil de admin | verificado no navegador (`src/components/guards.tsx`); com `.env`, as regras do Firestore repetem a checagem | testes das regras no emulador (fase 4) e custom claim `role: admin` para a gestão |
 | Dados de exemplo | carga inicial em `src/lib/storage.ts`, deslocada para "hoje" a cada dia | dados reais do estúdio |
 | Indicadores do painel | calculados sobre os dados locais | calcular no servidor, com histórico e filtros por período |
 | Taxa de no-show | calculada no navegador sobre os atendimentos locais | calcular no servidor, sobre o histórico completo do estúdio |

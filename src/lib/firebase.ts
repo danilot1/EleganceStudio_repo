@@ -1,38 +1,17 @@
 import { getApps, initializeApp, type FirebaseApp } from 'firebase/app'
 import { connectAuthEmulator, getAuth, type Auth } from 'firebase/auth'
 import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore'
+import { firebaseConfig, isFirebaseConfigured } from './firebaseConfig'
+
+export { isFirebaseConfigured, missingFirebaseVars } from './firebaseConfig'
 
 /**
- * Configuração do Firebase.
+ * Inicialização preguiçosa do SDK.
  *
- * As variáveis `VITE_FIREBASE_*` são públicas por natureza (identificam o projeto, não
- * autorizam nada sozinhas) — a proteção real fica em `firestore.rules`. Quando elas não
- * existem, `isFirebaseConfigured` é `false` e o aplicativo continua no modo local, sem
- * nenhuma tela de erro: a demonstração nunca deixa de abrir.
+ * Só é chamada pelo adaptador Firestore (`lib/backend/firestore.ts`), que por sua vez é
+ * carregado por `import()` quando o `.env` está preenchido. Sem configuração, nada disto
+ * entra no bundle e o aplicativo segue no modo local.
  */
-
-const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-}
-
-const REQUIRED: Array<[string, string | undefined]> = [
-  ['VITE_FIREBASE_API_KEY', config.apiKey],
-  ['VITE_FIREBASE_AUTH_DOMAIN', config.authDomain],
-  ['VITE_FIREBASE_PROJECT_ID', config.projectId],
-  ['VITE_FIREBASE_APP_ID', config.appId],
-]
-
-/** Nomes das variáveis ausentes — útil em mensagem de documentação, não em tela. */
-export const missingFirebaseVars: string[] = REQUIRED.filter(([, value]) => !value).map(
-  ([name]) => name,
-)
-
-export const isFirebaseConfigured = missingFirebaseVars.length === 0
 
 let app: FirebaseApp | null = null
 let auth: Auth | null = null
@@ -44,7 +23,7 @@ function ensureApp(): FirebaseApp {
     throw new Error('Firebase não configurado: preencha as variáveis VITE_FIREBASE_* no .env.')
   }
   if (!app) {
-    app = getApps()[0] ?? initializeApp(config)
+    app = getApps()[0] ?? initializeApp(firebaseConfig)
   }
   return app
 }
@@ -60,16 +39,14 @@ function connectEmulators(authInstance: Auth, store: Firestore): void {
 
 export function firebaseAuth(): Auth {
   if (!auth) {
-    const instance = ensureApp()
-    auth = getAuth(instance)
+    auth = getAuth(ensureApp())
   }
   return auth
 }
 
 export function firebaseDb(): Firestore {
   if (!firestore) {
-    const instance = ensureApp()
-    firestore = getFirestore(instance)
+    firestore = getFirestore(ensureApp())
     connectEmulators(firebaseAuth(), firestore)
   }
   return firestore

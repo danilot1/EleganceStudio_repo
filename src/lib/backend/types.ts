@@ -64,7 +64,13 @@ export interface Backend {
    * com o primeiro agendamento gravado.
    */
   subscribe(listener: (db: Database) => void): () => void
-  signIn(email: string, password: string): Promise<SessionResult>
+  /** `remember` decide a persistência da sessão (localStorage x sessionStorage). */
+  signIn(email: string, password: string, remember?: boolean): Promise<SessionResult>
+  /**
+   * Opcional: avisa quando a sessão do servidor muda (Firebase Auth). No modo local a
+   * sessão é controlada pelo próprio AppState.
+   */
+  subscribeSession?: (listener: (session: Session | null) => void) => () => void
   signUp(input: SignUpInput): Promise<SessionResult>
   signOut(): Promise<void>
   requestPasswordReset(identifier: string): Promise<ActionResult>

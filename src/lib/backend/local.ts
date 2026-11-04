@@ -3,6 +3,7 @@ import { fitsWorkWindow, hasConflict } from '../availability'
 import { isValidEmail, onlyDigits } from '../format'
 import { canRegisterNoShow } from '../noShow'
 import { todayISO } from '../dates'
+import { validateServicePatch } from './servicePatch'
 import {
   loadDatabase,
   resetDatabase,
@@ -80,7 +81,7 @@ export function createLocalBackend(): Backend {
       }
     },
 
-    async signIn(email, password): Promise<SessionResult> {
+    async signIn(email, password, _remember = true): Promise<SessionResult> {
       const db = read()
       const user = db.users.find(
         (item) => item.email.toLowerCase() === email.trim().toLowerCase(),
@@ -240,25 +241,8 @@ export function createLocalBackend(): Backend {
         return { ok: false, error: 'Serviço não encontrado no catálogo.' }
       }
 
-      if (patch.durationMin !== undefined) {
-        if (
-          !Number.isInteger(patch.durationMin) ||
-          patch.durationMin < 15 ||
-          patch.durationMin > 240 ||
-          patch.durationMin % 5 !== 0
-        ) {
-          return {
-            ok: false,
-            error: 'A duração precisa ficar entre 15 e 240 minutos, em passos de 5.',
-          }
-        }
-      }
-
-      if (patch.price !== undefined) {
-        if (!Number.isFinite(patch.price) || patch.price < 0 || patch.price > 5000) {
-          return { ok: false, error: 'O preço precisa ficar entre R$ 0 e R$ 5.000.' }
-        }
-      }
+      const validation = validateServicePatch(patch)
+      if (validation) return { ok: false, error: validation }
 
       // `ServiceOverride` pode estar ausente: espalhar `undefined` é inofensivo e evita
       // um objeto vazio só de fallback.
