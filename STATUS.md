@@ -45,6 +45,7 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 | Indicadores do painel | calculados sobre os dados locais | calcular no servidor, com histórico e filtros por período |
 | Taxa de no-show | calculada no navegador sobre os atendimentos locais | calcular no servidor, sobre o histórico completo do estúdio |
 | Fotos | placeholders em CSS | arquivos em `public/images/` + `src/data/images.ts` |
+| Publicação | `firebase.json` publica as regras e o índice composto (`firestore.indexes.json`), `npm run deploy:rules` executa, e `DEPLOY.md` lista o passo a passo e o checklist | falta rodar no projeto do dono (login, projeto, região) — nada foi publicado, e a primeira conta de gestão precisa ser promovida no console |
 
 ## 3. Não está implementado (nenhuma tela finge que funciona)
 

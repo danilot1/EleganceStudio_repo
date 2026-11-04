@@ -12,6 +12,7 @@
     "seed:build": "vite build --config scripts/vite.seed.config.ts",
     "seed:demo": "npm run seed:build && firebase emulators:exec --only auth,firestore --project elegance-demo \"node dist-seed/seed.mjs --demo\"",
     "seed:backfill": "npm run seed:build && node dist-seed/seed.mjs --backfill",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes",
     "test:watch": "vitest",
     "lint": "oxlint",
     "preview": "vite preview"

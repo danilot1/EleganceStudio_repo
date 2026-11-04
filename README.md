@@ -22,6 +22,9 @@ Cobre os dois lados do sistema:
 
 > Leia também o **[STATUS.md](./STATUS.md)**: ele separa o que funciona de verdade do que é
 > apenas demonstração. Nada é simulado como se estivesse pronto.
+>
+> Para publicar no Firebase (regras, índice, primeira gestão e checklist), siga o
+> **[DEPLOY.md](./DEPLOY.md).**
 
 ---
 
@@ -44,6 +47,7 @@ npm run lint        # análise estática (oxlint)
 npm run test:rules  # testes das regras no emulador (precisa de Java)
 npm run seed:demo   # carrega a demonstração no emulador (precisa de Java)
 npm run seed:backfill  # reconstrói os documentos de agenda dos agendamentos
+npm run deploy:rules   # publica regras + índices (precisa de `firebase login`)
 npm run preview     # serve o resultado do build
 ```
 
@@ -68,7 +72,7 @@ qual implementação responde — `local` hoje, `firebase` nas próximas fases d
 | 3. Agenda transacional no Firestore | concluída — `agenda/{profissional}__{dia}` serializa a reserva |
 | 4. Security Rules + testes de regra | concluída — 17 testes no emulador (`npm run test:rules`) |
 | 5. Seed e backfill da agenda | concluída — `scripts/seed.ts` grava a demonstração e reconstrói `agenda/` a partir dos agendamentos, com verificação no emulador |
-| 6. Publicação das rules | pendente |
+| 6. Publicação das rules e do índice | pronta para publicar — `npm run deploy:rules` e o passo a passo em `DEPLOY.md`; a publicação em si exige o projeto Firebase do dono |
 
 ## Contas de demonstração
 

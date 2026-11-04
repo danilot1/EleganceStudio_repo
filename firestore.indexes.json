@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "//": "Desativar um serviço consulta appointments por serviceId e dataISO (updateService).",
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "serviceId", "order": "ASCENDING" },
+        { "fieldPath": "dateISO", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
