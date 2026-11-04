@@ -2,7 +2,7 @@ import { ArrowRight, CalendarCheck, ShieldCheck, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FieldError, InfoNote } from '../../components/ui'
-import { findProfessional, findService } from '../../data/catalog'
+import { findProfessional } from '../../data/catalog'
 import { durationLabel } from '../../lib/dates'
 import { formatBRL } from '../../lib/format'
 import { useAppState } from '../../state/AppState'
@@ -12,13 +12,13 @@ import { ProfessionalSummaryCard, ScheduleLine, ServiceSummaryCard } from './Boo
 /** Etapa 4 — Revisão (etapa final antes do comprovante). */
 export function StepReview() {
   const { draft, update } = useBooking()
-  const { createAppointment, session } = useAppState()
+  const { createAppointment, session, services } = useAppState()
   const navigate = useNavigate()
   const [name, setName] = useState(draft.clientName ?? session?.name ?? '')
   const [note, setNote] = useState(draft.clientNote ?? '')
   const [error, setError] = useState<string | null>(null)
 
-  const service = findService(draft.serviceId)
+  const service = services.find((item) => item.id === draft.serviceId)
   const professional = findProfessional(draft.professionalId)
   const ready = Boolean(service && professional && draft.dateISO && draft.startMin !== undefined)
 

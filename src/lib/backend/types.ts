@@ -48,6 +48,13 @@ export interface NewAppointmentInput {
 export type SessionResult = ActionResult & { session?: Session }
 export type CreateResult = ActionResult & { appointment?: Appointment }
 
+/** Campos do catálogo que a gestão pode ajustar. */
+export interface ServicePatch {
+  durationMin?: number
+  price?: number
+  active?: boolean
+}
+
 export interface Backend {
   readonly mode: 'local' | 'firebase'
   /**
@@ -69,6 +76,8 @@ export interface Backend {
   registerNoShow(id: string): Promise<ActionResult>
   registerPayment(id: string, method: PaymentMethod): Promise<void>
   rescheduleAppointment(id: string, dateISO: string, startMin: number): Promise<ActionResult>
+  /** Ajusta duração, preço ou disponibilidade de um serviço no catálogo. */
+  updateService(id: string, patch: ServicePatch): Promise<ActionResult>
   resetDemo(): Promise<void>
 }
 

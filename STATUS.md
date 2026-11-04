@@ -28,6 +28,7 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 | Taxa de no-show por período | `src/routes/admin/AdminAgenda.tsx` | calculada sobre falta ÷ atendimentos com desfecho do dia ou da semana |
 | Novo atendimento pela gestão | `src/routes/admin/AdminAgenda.tsx` | botão "+ Novo" com escolha de serviço, profissional e horário |
 | Camada de dados trocável | `src/lib/backend/` | contrato único (`Backend`) com implementação local e operações assíncronas; o adaptador Firebase entra pelo mesmo contrato, sem tocar em nenhuma tela |
+| Gestão de serviços e horários | `src/routes/admin/AdminAgenda.tsx`, `src/lib/backend/local.ts` | a gestão ajusta duração, preço e ativa/desativa cada serviço; a nova duração passa a reservar os blocos da agenda e a montar os horários do agendamento |
 | Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 51 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda e no-show) |
 
 ## 2. Existe, mas é demonstração (NÃO é produção)
@@ -48,8 +49,6 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 Os controles abaixo existem no protótipo, mas foram deixados **explicitamente** como aviso na
 tela em vez de simular sucesso:
 
-- **Edição de serviços pela gestão** — a aba Serviços mostra duração e preço do catálogo, mas
-  não salva alterações: os valores vêm de `src/data/catalog.ts`.
 - **Login com Apple e Google** — exige OAuth/OpenID com um provedor de identidade.
 - **Recuperação de senha por e-mail ou WhatsApp** — exige servidor de e-mail e API do WhatsApp.
 - **Lembretes e notificações** — exigem serviço de mensagens e jobs agendados (o sino mostra o aviso).

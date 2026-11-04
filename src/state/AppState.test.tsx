@@ -205,3 +205,76 @@ describe('conflito de horários', () => {
     ).toHaveLength(0)
   })
 })
+
+describe('gestão de serviços', () => {
+  it('aplica duração e preço novos ao catálogo em uso', async () => {
+    const { result } = renderState()
+
+    let outcome: Awaited<ReturnType<State['updateService']>> | undefined
+    await act(async () => {
+      outcome = await result.current.updateService('manicure-classica', {
+        durationMin: 60,
+        price: 90,
+      })
+    })
+
+    expect(outcome?.ok).toBe(true)
+    const active = result.current.services.find((item) => item.id === 'manicure-classica')
+    expect(active?.durationMin).toBe(60)
+    expect(active?.price).toBe(90)
+    expect(
+      result.current.allServices.find((item) => item.id === 'manicure-classica')?.durationMin,
+    ).toBe(60)
+  })
+
+  it('recusa duração fora do permitido', async () => {
+    const { result } = renderState()
+
+    let outcome: Awaited<ReturnType<State['updateService']>> | undefined
+    await act(async () => {
+      outcome = await result.current.updateService('manicure-classica', { durationMin: 7 })
+    })
+
+    expect(outcome?.ok).toBe(false)
+    expect(outcome?.error).toMatch(/entre 15 e 240/)
+    expect(
+      result.current.services.find((item) => item.id === 'manicure-classica')?.durationMin,
+    ).toBe(40)
+  })
+
+  it('tira do catálogo o serviço desativado, mantendo o registro para a gestão', async () => {
+    const { result } = renderState()
+
+    await act(async () => {
+      await result.current.updateService('lavagem-especial', { active: false })
+    })
+
+    expect(result.current.services.some((item) => item.id === 'lavagem-especial')).toBe(false)
+    expect(
+      result.current.allServices.find((item) => item.id === 'lavagem-especial')?.active,
+    ).toBe(false)
+  })
+
+  it('impede desativar serviço com agendamento futuro', async () => {
+    const { result } = renderState()
+    await act(async () => {
+      await result.current.createAppointment({
+        ...BASE_INPUT,
+        serviceId: 'corte-visagismo',
+        dateISO: weekdayISO(6),
+      })
+    })
+
+    let outcome: Awaited<ReturnType<State['updateService']>> | undefined
+    await act(async () => {
+      outcome = await result.current.updateService('corte-visagismo', { active: false })
+    })
+
+    expect(outcome?.ok).toBe(false)
+    expect(outcome?.error).toMatch(/agendamento ativo/)
+    expect(
+      result.current.services.find((item) => item.id === 'corte-visagismo')?.active,
+    ).not.toBe(false)
+  })
+})
+

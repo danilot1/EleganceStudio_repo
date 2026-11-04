@@ -41,6 +41,11 @@ export interface Service {
   note?: string
   /** false = não aparece no catálogo, mas existe porque há agendamento usando o serviço. */
   catalogVisible?: boolean
+  /**
+   * false = desativado pela gestão: some do catálogo e não pode ser agendado, mas o
+   * histórico de atendimentos continua exibindo o nome e o preço registrados.
+   */
+  active?: boolean
   popular?: boolean
 }
 

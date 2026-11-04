@@ -1,6 +1,8 @@
+import { SERVICES } from '../../data/catalog'
 import { fitsWorkWindow, hasConflict } from '../availability'
 import { isValidEmail, onlyDigits } from '../format'
 import { canRegisterNoShow } from '../noShow'
+import { todayISO } from '../dates'
 import {
   loadDatabase,
   resetDatabase,
@@ -8,7 +10,7 @@ import {
   subscribeToDatabase,
   type Database,
 } from '../storage'
-import type { Appointment, PaymentMethod, Session, User } from '../types'
+import { freesSlot, type Appointment, type PaymentMethod, type Session, type User } from '../types'
 import { SELF_SIGNUP_ROLE, type Backend, type SessionResult } from './types'
 
 /**
@@ -229,6 +231,58 @@ export function createLocalBackend(): Backend {
         return { ok: false, error: 'Horário indisponível para esta profissional.' }
       }
       mapAppointment(id, (item) => ({ ...item, dateISO, startMin, status: 'aguardando' }))
+      return { ok: true }
+    },
+
+    async updateService(id, patch) {
+      const db = read()
+      if (!SERVICES.some((service) => service.id === id)) {
+        return { ok: false, error: 'Serviço não encontrado no catálogo.' }
+      }
+
+      if (patch.durationMin !== undefined) {
+        if (
+          !Number.isInteger(patch.durationMin) ||
+          patch.durationMin < 15 ||
+          patch.durationMin > 240 ||
+          patch.durationMin % 5 !== 0
+        ) {
+          return {
+            ok: false,
+            error: 'A duração precisa ficar entre 15 e 240 minutos, em passos de 5.',
+          }
+        }
+      }
+
+      if (patch.price !== undefined) {
+        if (!Number.isFinite(patch.price) || patch.price < 0 || patch.price > 5000) {
+          return { ok: false, error: 'O preço precisa ficar entre R$ 0 e R$ 5.000.' }
+        }
+      }
+
+      // `ServiceOverride` pode estar ausente: espalhar `undefined` é inofensivo e evita
+      // um objeto vazio só de fallback.
+      const current = db.serviceOverrides[id]
+      const next = { ...current, ...patch }
+
+      // Desativar um serviço que ainda tem atendimento ativo marcado deixaria a cliente
+      // sem saber o que aconteceu com o horário dela: a gestão precisa resolver antes.
+      if (next.active === false) {
+        const today = todayISO()
+        const scheduled = db.appointments.some(
+          (item) =>
+            item.serviceId === id && !freesSlot(item.status) && item.dateISO >= today,
+        )
+        if (scheduled) {
+          return {
+            ok: false,
+            error:
+              'Há agendamento ativo com este serviço. Cancele ou reagende antes de desativá-lo.',
+          }
+        }
+      }
+
+      write({ ...db, serviceOverrides: { ...db.serviceOverrides, [id]: next } })
       return { ok: true }
     },
 

@@ -17,12 +17,13 @@ import { AgendaCalendar, type AgendaView } from '../../components/AgendaCalendar
 import { RequireRole } from '../../components/guards'
 import { SlotPicker } from '../../components/SlotPicker'
 import { TimelineCard } from '../../components/TimelineCard'
-import { Avatar, DemoNotice, Stat, cx } from '../../components/ui'
-import { SERVICE_GROUPS } from '../../data/catalog'
+import { Avatar, DemoNotice, Stat, SuccessNote, cx } from '../../components/ui'
+import { SERVICES, SERVICE_GROUPS } from '../../data/catalog'
 import { appointmentsOfDay, occupancyOf, summarizeDay } from '../../lib/agenda'
 import { fullDateLabel, numericDayMonth, todayISO, weekdayDateLabel } from '../../lib/dates'
 import { formatBRL } from '../../lib/format'
 import { noShowStats } from '../../lib/noShow'
+import type { Service } from '../../lib/types'
 import { useAppState } from '../../state/AppState'
 
 type PanelTab = 'agenda' | 'servicos' | 'clientes' | 'profissionais'
@@ -486,48 +487,7 @@ function AdminPanel() {
         </>
       ) : null}
 
-      {tab === 'servicos' ? (
-        <section className="space-y-3">
-          <h2 className="text-[19px] text-ink">Serviços cadastrados</h2>
-          <p className="text-[12px] leading-relaxed text-ink-muted">
-            A duração definida aqui é a que reserva o horário na agenda: um serviço de 60 minutos
-            ocupa dois blocos de 30 minutos na visão Dia.
-          </p>
-          <div className="space-y-2">
-            {SERVICE_GROUPS.map((group) => {
-              const items = services.filter((service) => service.groupId === group.id)
-              if (items.length === 0) return null
-              return (
-                <div key={group.id} className="card space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[15px] font-semibold text-ink">{group.label}</p>
-                    <span className="badge bg-surface-2 text-ink-soft">{items.length} serviços</span>
-                  </div>
-                  <ul className="space-y-1.5 text-[12px]">
-                    {items.map((service) => (
-                      <li
-                        key={service.id}
-                        className="flex items-center justify-between gap-2 border-b border-line pb-1.5 last:border-b-0 last:pb-0"
-                      >
-                        <span className="min-w-0 flex-1 text-ink-soft">{service.name}</span>
-                        <span className="shrink-0 text-ink-muted">{service.durationMin} min</span>
-                        <span className="shrink-0 font-semibold text-ink">
-                          {formatBRL(service.price)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            })}
-          </div>
-          <DemoNotice>
-            A edição de duração e preço pela gestão ainda não está implementada: o catálogo é
-            fixo em <span className="font-semibold text-ink-soft">src/data/catalog.ts</span>. A
-            agenda já respeita a duração de cada serviço ao reservar os blocos.
-          </DemoNotice>
-        </section>
-      ) : null}
+      {tab === 'servicos' ? <ServicesTab /> : null}
 
       {tab === 'clientes' ? (
         <section className="space-y-3">
@@ -652,6 +612,215 @@ function AdminPanel() {
         </section>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * Aba Serviços: a gestão ajusta duração, preço e disponibilidade de cada procedimento.
+ *
+ * A duração não é só exibição: é ela que reserva os blocos na agenda e monta os horários
+ * oferecidos à cliente. Por isso a lista vem de `useAppState().allServices` — o mesmo
+ * catálogo que o `SlotPicker` consulta — e não do arquivo fixo do catálogo.
+ */
+function ServicesTab() {
+  const { allServices, updateService } = useAppState()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [duration, setDuration] = useState('')
+  const [price, setPrice] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  async function save(service: Service) {
+    const result = await updateService(service.id, {
+      durationMin: Number(duration),
+      price: Number(price.replace(',', '.')),
+    })
+    if (!result.ok) {
+      setError(result.error ?? 'Não foi possível salvar o serviço.')
+      return
+    }
+    setError(null)
+    setMessage(
+      `${service.name} atualizado. A agenda e o agendamento já usam a nova duração.`,
+    )
+    setEditingId(null)
+  }
+
+  async function toggleActive(service: Service) {
+    const result = await updateService(service.id, { active: service.active === false })
+    if (!result.ok) {
+      setError(result.error ?? 'Não foi possível alterar o serviço.')
+      return
+    }
+    setError(null)
+    setMessage(
+      service.active === false
+        ? `${service.name} voltou ao catálogo.`
+        : `${service.name} saiu do catálogo; o histórico de atendimentos continua intacto.`,
+    )
+  }
+
+  async function restore(service: Service) {
+    const base = SERVICES.find((item) => item.id === service.id)
+    if (!base) return
+    const result = await updateService(service.id, {
+      durationMin: base.durationMin,
+      price: base.price,
+      active: true,
+    })
+    if (!result.ok) {
+      setError(result.error ?? 'Não foi possível restaurar o serviço.')
+      return
+    }
+    setError(null)
+    setMessage(`${service.name} voltou aos valores do catálogo.`)
+    setEditingId(null)
+  }
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-[19px] text-ink">Serviços e horários</h2>
+        <p className="text-[12px] leading-relaxed text-ink-muted">
+          A duração definida aqui é a que reserva o horário: um serviço de 60 minutos ocupa dois
+          blocos de 30 minutos na visão Dia e deixa menos vagas no dia.
+        </p>
+      </div>
+
+      {message ? <SuccessNote>{message}</SuccessNote> : null}
+      {error ? (
+        <p role="alert" className="rounded-[12px] bg-danger-tint px-3 py-2 text-[12px] font-medium text-danger">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="space-y-2">
+        {SERVICE_GROUPS.map((group) => {
+          const items = allServices.filter((service) => service.groupId === group.id)
+          if (items.length === 0) return null
+          return (
+            <div key={group.id} className="card space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[15px] font-semibold text-ink">{group.label}</p>
+                <span className="badge bg-surface-2 text-ink-soft">{items.length} serviços</span>
+              </div>
+              <ul className="space-y-2">
+                {items.map((service) => {
+                  const editing = editingId === service.id
+                  const inactive = service.active === false
+                  return (
+                    <li
+                      key={service.id}
+                      className={cx(
+                        'rounded-[12px] border border-line p-2.5',
+                        inactive && 'opacity-70',
+                      )}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="min-w-0 flex-1 basis-40 text-[13px] font-medium text-ink">
+                          {service.name}
+                        </span>
+                        {inactive ? (
+                          <span className="badge bg-surface-3 text-ink-muted">Inativo</span>
+                        ) : null}
+                        <span className="badge bg-surface-2 text-ink-soft">
+                          {service.durationMin} min
+                        </span>
+                        <span className="shrink-0 text-[13px] font-semibold text-ink">
+                          {formatBRL(service.price)}
+                        </span>
+                      </div>
+
+                      {editing ? (
+                        <div className="mt-2 space-y-2">
+                          <div className="flex flex-wrap gap-2">
+                            <label className="flex-1 basis-32 space-y-1">
+                              <span className="eyebrow">Duração (min)</span>
+                              <input
+                                className="field-input"
+                                inputMode="numeric"
+                                value={duration}
+                                onChange={(event) => setDuration(event.target.value)}
+                                aria-label={`Duração de ${service.name}`}
+                              />
+                            </label>
+                            <label className="flex-1 basis-32 space-y-1">
+                              <span className="eyebrow">Preço (R$)</span>
+                              <input
+                                className="field-input"
+                                inputMode="decimal"
+                                value={price}
+                                onChange={(event) => setPrice(event.target.value)}
+                                aria-label={`Preço de ${service.name}`}
+                              />
+                            </label>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="btn-ghost btn-sm flex-1"
+                              onClick={() => {
+                                setEditingId(null)
+                                setError(null)
+                              }}
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-primary btn-sm flex-1"
+                              onClick={() => void save(service)}
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="btn-outline btn-sm"
+                            onClick={() => {
+                              setEditingId(service.id)
+                              setDuration(String(service.durationMin))
+                              setPrice(String(service.price))
+                              setError(null)
+                              setMessage(null)
+                            }}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost btn-sm"
+                            onClick={() => void toggleActive(service)}
+                          >
+                            {inactive ? 'Reativar' : 'Desativar'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost btn-sm"
+                            onClick={() => void restore(service)}
+                          >
+                            Restaurar padrão
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )
+        })}
+      </div>
+
+      <DemoNotice>
+        Os ajustes ficam salvos neste navegador e valem na hora para o agendamento da cliente.
+        Desativar um serviço com atendimento futuro marcado é recusado — resolva o horário
+        antes. Com o Firestore conectado, os mesmos ajustes passam a valer para toda a equipe.
+      </DemoNotice>
+    </section>
   )
 }
 

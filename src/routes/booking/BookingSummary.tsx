@@ -1,14 +1,17 @@
 import { CalendarDays, Clock, Star, Wand2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Avatar } from '../../components/ui'
-import { findProfessional, findService } from '../../data/catalog'
+import { findProfessional } from '../../data/catalog'
 import { appointmentRange, durationLabel, shortDateLabel } from '../../lib/dates'
 import { formatBRL } from '../../lib/format'
+import { useAppState } from '../../state/AppState'
 
 /** Réplica do cartão "Experiência selecionada" do protótipo. */
 export function ServiceSummaryCard({ serviceId }: { serviceId?: string }) {
   const navigate = useNavigate()
-  const service = findService(serviceId)
+  // Resumo lê o catálogo do estado: se a gestão mudou duração ou preço, aparece aqui.
+  const { services } = useAppState()
+  const service = services.find((item) => item.id === serviceId)
   if (!service) return null
 
   return (

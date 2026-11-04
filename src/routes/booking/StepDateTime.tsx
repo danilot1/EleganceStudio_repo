@@ -3,17 +3,19 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SlotPicker, type SlotSelection } from '../../components/SlotPicker'
 import { InfoNote } from '../../components/ui'
-import { findService } from '../../data/catalog'
 import { minutesToTime, shortDateLabel } from '../../lib/dates'
 import { formatBRL } from '../../lib/format'
+import { useAppState } from '../../state/AppState'
 import { useBooking } from '../../state/BookingContext'
 import { ProfessionalSummaryCard, ServiceSummaryCard } from './BookingSummary'
 
 /** Etapa 3 — Data & Hora (tela enviada como print). */
 export function StepDateTime() {
   const { draft, update } = useBooking()
+  const { services } = useAppState()
   const navigate = useNavigate()
-  const service = findService(draft.serviceId)
+  // Catálogo vindo do estado: respeita a duração ajustada pela gestão.
+  const service = services.find((item) => item.id === draft.serviceId)
   // Permite ver a grade antes de clicar: o horário só é gravado quando escolhido.
   const [selection, setSelection] = useState<SlotSelection | undefined>(
     draft.dateISO && draft.startMin !== undefined

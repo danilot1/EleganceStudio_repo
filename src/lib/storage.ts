@@ -15,12 +15,27 @@ const STORAGE_KEY = 'elegance-studio:v1'
 /** Chave usada para sincronizar abas abertas no mesmo navegador. */
 export const DATABASE_STORAGE_KEY = STORAGE_KEY
 
+/**
+ * Ajustes do catálogo feitos pela gestão.
+ * A duração é a que reserva os blocos na agenda; `active: false` tira o serviço do
+ * catálogo sem apagar o histórico de atendimentos que já o usaram.
+ */
+export interface ServiceOverride {
+  durationMin?: number
+  price?: number
+  active?: boolean
+}
+
+export type ServiceOverrides = Record<string, ServiceOverride>
+
 export interface Database {
   version: 1
   /** Data em que a demonstração foi gerada, usada para deslocar os dados de exemplo. */
   seedDateISO: string
   users: User[]
   appointments: Appointment[]
+  /** Vazio quando a gestão nunca editou o catálogo. */
+  serviceOverrides: ServiceOverrides
 }
 
 function seedUsers(): User[] {
@@ -371,6 +386,7 @@ export function createSeededDatabase(): Database {
     seedDateISO: today,
     users: seedUsers(),
     appointments: seedAppointments(today),
+    serviceOverrides: {},
   }
 }
 
@@ -400,7 +416,14 @@ function readFromStorage(): Database | null {
     if (parsed.version !== 1 || !Array.isArray(parsed.users) || !Array.isArray(parsed.appointments)) {
       return null
     }
-    return parsed
+    // Banco gravado antes da gestão de serviços: completa o campo em vez de descartar.
+    return {
+      ...parsed,
+      serviceOverrides:
+        parsed.serviceOverrides && typeof parsed.serviceOverrides === 'object'
+          ? parsed.serviceOverrides
+          : {},
+    }
   } catch {
     // Storage indisponível (modo privado) ou JSON corrompido: recomeça do zero.
     return null

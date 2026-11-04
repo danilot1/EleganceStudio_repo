@@ -127,8 +127,9 @@ no celular o mês usa sete colunas compactas e a visão Dia rola na horizontal, 
 - **Fotos:** o protótipo usa fotos que não vieram no export. Cada posição mostra hoje um
   placeholder elegante. Para usar as imagens reais, coloque os arquivos em `public/images/`
   e aponte o caminho em `src/data/images.ts` — nenhum outro arquivo precisa mudar.
-- **Serviços e preços:** `src/data/catalog.ts` (preços estimados estão marcados com
-  `priceEstimated: true` e listados no STATUS.md).
+- **Serviços e preços:** o catálogo base fica em `src/data/catalog.ts` (preços estimados
+  marcados com `priceEstimated: true`, listados no STATUS.md). A gestão pode ajustar duração,
+  preço e disponibilidade em **Painel → Serviços**, sem editar código.
 
 ## Tecnologias
 

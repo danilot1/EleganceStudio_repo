@@ -18,17 +18,28 @@ import type {
   ActionResult,
   CreateResult,
   NewAppointmentInput,
+  ServicePatch,
   SignUpInput,
 } from '../lib/backend/types'
 import { loadDatabase, type Database } from '../lib/storage'
-import type { Appointment, AppointmentStatus, PaymentMethod, Session, User } from '../lib/types'
+import type {
+  Appointment,
+  AppointmentStatus,
+  PaymentMethod,
+  Service,
+  Session,
+  User,
+} from '../lib/types'
 
 export type { ActionResult, NewAppointmentInput, SignUpInput }
 
 const SESSION_KEY = 'elegance-studio:session'
 
 interface AppStateValue {
-  services: typeof SERVICES
+  /** Catálogo em uso: serviços ativos, com os ajustes feitos pela gestão. */
+  services: Service[]
+  /** Catálogo completo, incluindo os desativados (usado pela aba Serviços da gestão). */
+  allServices: Service[]
   professionals: typeof PROFESSIONALS
   groups: typeof SERVICE_GROUPS
   categories: typeof CATEGORIES
@@ -46,6 +57,7 @@ interface AppStateValue {
   registerNoShow: (id: string) => Promise<ActionResult>
   registerPayment: (id: string, method: PaymentMethod) => Promise<void>
   rescheduleAppointment: (id: string, dateISO: string, startMin: number) => Promise<ActionResult>
+  updateService: (id: string, patch: ServicePatch) => Promise<ActionResult>
   resetDemo: () => void
 }
 
@@ -72,6 +84,22 @@ function readSession(): Session | null {
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<Database>(() => loadDatabase())
   const [session, setSession] = useState<Session | null>(() => readSession())
+
+  // O catálogo base é `data/catalog.ts`; a gestão só grava ajustes por serviço. Derivar
+  // a lista aqui (em vez de espalhar condições pelas telas) mantém preço, duração e
+  // disponibilidade consistentes no agendamento, na agenda e no painel.
+  const allServices = useMemo<Service[]>(
+    () =>
+      SERVICES.map((service) => ({
+        ...service,
+        ...db.serviceOverrides[service.id],
+      })),
+    [db.serviceOverrides],
+  )
+  const services = useMemo(
+    () => allServices.filter((service) => service.active !== false),
+    [allServices],
+  )
 
   useEffect(() => {
     // A assinatura cobre os três casos — gravação nesta aba, em outra aba e no servidor —
@@ -155,6 +183,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const updateService = useCallback(
+    (id: string, patch: ServicePatch): Promise<ActionResult> =>
+      backend.updateService(id, patch),
+    [],
+  )
+
   const resetDemo = useCallback(() => {
     persistSession(null)
     void backend.resetDemo()
@@ -162,7 +196,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AppStateValue>(
     () => ({
-      services: SERVICES,
+      services,
+      allServices,
       professionals: PROFESSIONALS,
       groups: SERVICE_GROUPS,
       categories: CATEGORIES,
@@ -178,12 +213,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       registerNoShow,
       registerPayment,
       rescheduleAppointment,
+      updateService,
       resetDemo,
     }),
     [
       db.appointments,
       db.users,
       session,
+      services,
+      allServices,
       login,
       signUp,
       logout,
@@ -193,6 +231,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       registerNoShow,
       registerPayment,
       rescheduleAppointment,
+      updateService,
       resetDemo,
     ],
   )
