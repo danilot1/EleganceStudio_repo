@@ -96,8 +96,8 @@ export function AppointmentCard({
             <button
               type="button"
               className="btn-primary btn-sm flex-1"
-              onClick={() => {
-                setAppointmentStatus(appointment.id, 'cancelado')
+              onClick={async () => {
+                await setAppointmentStatus(appointment.id, 'cancelado')
                 setConfirmCancel(false)
                 setMessage('Agendamento cancelado. O horário já está livre para outras clientes.')
               }}
@@ -238,8 +238,8 @@ export function AppointmentCard({
             professionalId={appointment.professionalId}
             durationMin={appointment.durationMin}
             ignoreAppointmentId={appointment.id}
-            onChange={(selection) => {
-              const result = rescheduleAppointment(
+            onChange={async (selection) => {
+              const result = await rescheduleAppointment(
                 appointment.id,
                 selection.dateISO,
                 selection.startMin,

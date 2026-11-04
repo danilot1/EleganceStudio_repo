@@ -20,6 +20,10 @@ function renderState() {
   })
 }
 
+type State = ReturnType<typeof useAppState>
+type Created = Awaited<ReturnType<State['createAppointment']>>
+type Outcome = Awaited<ReturnType<State['registerNoShow']>>
+
 /**
  * Dia útil próximo: domingo não tem expediente e sábado fecha às 14h, então os testes
  * usam segunda a sexta para não dependerem do dia em que a suíte rodar.
@@ -42,10 +46,14 @@ const BASE_INPUT = {
   origin: 'balcao' as const,
 }
 
-/** Cria um atendimento de balcão em um dia relativo a hoje e devolve o registro gravado. */
-function createAtDaysFromToday(result: { current: ReturnType<typeof useAppState> }, days: number) {
-  act(() => {
-    result.current.createAppointment({ ...BASE_INPUT, dateISO: weekdayISO(days) })
+/**
+ * Cria um atendimento de balcão em um dia relativo a hoje e devolve o registro gravado.
+ * As operações da camada de dados são assíncronas (o Firestore é), então tudo passa por
+ * `act` assíncrono — do contrário a asserção rodaria antes da gravação.
+ */
+async function createAtDaysFromToday(result: { current: State }, days: number) {
+  await act(async () => {
+    await result.current.createAppointment({ ...BASE_INPUT, dateISO: weekdayISO(days) })
   })
   const created = result.current.appointments.at(-1)
   if (!created) throw new Error('o atendimento não foi criado')
@@ -53,13 +61,13 @@ function createAtDaysFromToday(result: { current: ReturnType<typeof useAppState>
 }
 
 describe('registro de falta no estado', () => {
-  it('não deixa marcar falta de um atendimento futuro', () => {
+  it('não deixa marcar falta de um atendimento futuro', async () => {
     const { result } = renderState()
-    const created = createAtDaysFromToday(result, 5)
+    const created = await createAtDaysFromToday(result, 5)
 
-    let outcome: ReturnType<typeof result.current.registerNoShow> | undefined
-    act(() => {
-      outcome = result.current.registerNoShow(created.id)
+    let outcome: Outcome | undefined
+    await act(async () => {
+      outcome = await result.current.registerNoShow(created.id)
     })
 
     expect(outcome?.ok).toBe(false)
@@ -69,12 +77,12 @@ describe('registro de falta no estado', () => {
     )
   })
 
-  it('marca a falta de um atendimento passado e libera o horário', () => {
+  it('marca a falta de um atendimento passado e libera o horário', async () => {
     const { result } = renderState()
-    const created = createAtDaysFromToday(result, -10)
+    const created = await createAtDaysFromToday(result, -10)
 
-    act(() => {
-      result.current.registerNoShow(created.id)
+    await act(async () => {
+      await result.current.registerNoShow(created.id)
     })
 
     const updated = result.current.appointments.find((item) => item.id === created.id)
@@ -86,16 +94,16 @@ describe('registro de falta no estado', () => {
     expect(stored.appointments.find((item) => item.id === created.id)?.status).toBe('faltou')
   })
 
-  it('não deixa marcar falta de atendimento já concluído', () => {
+  it('não deixa marcar falta de atendimento já concluído', async () => {
     const { result } = renderState()
-    const created = createAtDaysFromToday(result, -10)
+    const created = await createAtDaysFromToday(result, -10)
 
-    act(() => {
-      result.current.setAppointmentStatus(created.id, 'concluido')
+    await act(async () => {
+      await result.current.setAppointmentStatus(created.id, 'concluido')
     })
-    let outcome: ReturnType<typeof result.current.registerNoShow> | undefined
-    act(() => {
-      outcome = result.current.registerNoShow(created.id)
+    let outcome: Outcome | undefined
+    await act(async () => {
+      outcome = await result.current.registerNoShow(created.id)
     })
 
     expect(outcome?.ok).toBe(false)
@@ -106,15 +114,15 @@ describe('registro de falta no estado', () => {
 })
 
 describe('conflito de horários', () => {
-  it('recusa o segundo agendamento no mesmo horário da mesma profissional', () => {
+  it('recusa o segundo agendamento no mesmo horário da mesma profissional', async () => {
     const { result } = renderState()
     const dateISO = weekdayISO(6)
 
-    let first: ReturnType<typeof result.current.createAppointment> | undefined
-    let second: ReturnType<typeof result.current.createAppointment> | undefined
+    let first: Created | undefined
+    let second: Created | undefined
 
-    act(() => {
-      first = result.current.createAppointment({
+    await act(async () => {
+      first = await result.current.createAppointment({
         ...BASE_INPUT,
         professionalId: 'camila',
         dateISO,
@@ -123,8 +131,8 @@ describe('conflito de horários', () => {
         clientName: 'Primeira Cliente',
       })
     })
-    act(() => {
-      second = result.current.createAppointment({
+    await act(async () => {
+      second = await result.current.createAppointment({
         ...BASE_INPUT,
         professionalId: 'camila',
         dateISO,
@@ -144,15 +152,15 @@ describe('conflito de horários', () => {
     ).toHaveLength(1)
   })
 
-  it('permite o mesmo horário para profissionais diferentes', () => {
+  it('permite o mesmo horário para profissionais diferentes', async () => {
     const { result } = renderState()
     const dateISO = weekdayISO(6)
 
-    let a: ReturnType<typeof result.current.createAppointment> | undefined
-    let b: ReturnType<typeof result.current.createAppointment> | undefined
+    let a: Created | undefined
+    let b: Created | undefined
 
-    act(() => {
-      a = result.current.createAppointment({
+    await act(async () => {
+      a = await result.current.createAppointment({
         ...BASE_INPUT,
         professionalId: 'camila',
         dateISO,
@@ -160,8 +168,8 @@ describe('conflito de horários', () => {
         durationMin: 60,
       })
     })
-    act(() => {
-      b = result.current.createAppointment({
+    await act(async () => {
+      b = await result.current.createAppointment({
         ...BASE_INPUT,
         professionalId: 'juliana',
         dateISO,
@@ -174,13 +182,13 @@ describe('conflito de horários', () => {
     expect(b?.ok).toBe(true)
   })
 
-  it('recusa atendimento que terminaria depois do fechamento', () => {
+  it('recusa atendimento que terminaria depois do fechamento', async () => {
     const { result } = renderState()
     const dateISO = weekdayISO(6)
     const startMin = 18 * 60 + 30
-    let outcome: ReturnType<typeof result.current.createAppointment> | undefined
-    act(() => {
-      outcome = result.current.createAppointment({
+    let outcome: Created | undefined
+    await act(async () => {
+      outcome = await result.current.createAppointment({
         ...BASE_INPUT,
         dateISO,
         startMin,

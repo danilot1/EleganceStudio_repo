@@ -23,7 +23,7 @@ export function SignUp() {
 
   const strength = passwordStrength(password)
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (password !== confirm) {
       setError('As senhas não conferem.')
@@ -33,7 +33,7 @@ export function SignUp() {
       setError('É necessário aceitar os Termos de Uso e a Política de Privacidade.')
       return
     }
-    const result = signUp({ name, email, phone, password })
+    const result = await signUp({ name, email, phone, password })
     if (!result.ok) {
       setError(result.error ?? 'Não foi possível criar a conta.')
       return

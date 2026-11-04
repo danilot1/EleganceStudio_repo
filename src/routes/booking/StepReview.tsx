@@ -118,12 +118,12 @@ export function StepReview() {
       <button
         type="button"
         className="btn-primary w-full"
-        onClick={() => {
+        onClick={async () => {
           if (!name.trim()) {
             setError('Informe o nome de quem vai ser atendida.')
             return
           }
-          const result = createAppointment({
+          const result = await createAppointment({
             serviceId: service!.id,
             professionalId: professional!.id,
             dateISO: draft.dateISO!,

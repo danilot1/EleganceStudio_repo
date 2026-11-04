@@ -262,13 +262,13 @@ function AdminPanel() {
             type="button"
             className="btn-primary w-full"
             disabled={!newSlot || !selectedNewService}
-            onClick={() => {
+            onClick={async () => {
               if (!newName.trim()) {
                 setNewError('Informe o nome da cliente.')
                 return
               }
               if (!newSlot || !selectedNewService) return
-              const result = createAppointment({
+              const result = await createAppointment({
                 serviceId: selectedNewService.id,
                 professionalId: newProfessionalId,
                 dateISO: newSlot.dateISO,

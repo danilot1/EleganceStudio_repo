@@ -1,7 +1,8 @@
 # STATUS — o que é real, o que é demonstração e o que falta
 
 Documento de transparência do protótipo. Ele existe para o projeto **não** parecer mais pronto
-do que está: o front-end está completo e funcional, mas **não existe back-end**.
+do que está: o front-end está completo e funcional e a camada de dados já está isolada, mas o
+**back-end Firebase ainda não foi implementado** (fases 2–6 do plano).
 
 ## 1. Funciona de verdade (código, com regra implementada)
 
@@ -26,13 +27,14 @@ do que está: o front-end está completo e funcional, mas **não existe back-end
 | Registro de falta (no-show) | `src/components/TimelineCard.tsx`, `src/lib/noShow.ts` | só depois do horário marcado; a falta libera a vaga na agenda e pode ser revertida |
 | Taxa de no-show por período | `src/routes/admin/AdminAgenda.tsx` | calculada sobre falta ÷ atendimentos com desfecho do dia ou da semana |
 | Novo atendimento pela gestão | `src/routes/admin/AdminAgenda.tsx` | botão "+ Novo" com escolha de serviço, profissional e horário |
+| Camada de dados trocável | `src/lib/backend/` | contrato único (`Backend`) com implementação local e operações assíncronas; o adaptador Firebase entra pelo mesmo contrato, sem tocar em nenhuma tela |
 | Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 51 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda e no-show) |
 
 ## 2. Existe, mas é demonstração (NÃO é produção)
 
 | Item | Como está hoje | O que falta para ser real |
 | --- | --- | --- |
-| Persistência | `localStorage` do navegador (`src/lib/storage.ts`) | banco de dados + API (ex.: PostgreSQL/MySQL no back-end) |
+| Persistência | `localStorage` do navegador (`src/lib/backend/local.ts`) | adaptador Firestore (fase 3); a interface já está pronta e as telas não mudam |
 | Conflito de horário | checado antes de gravar, com o estado sincronizado entre abas do mesmo navegador | transação no servidor: duas gravações simultâneas em aparelhos diferentes ainda podem competir |
 | Autenticação | usuário e senha gravados no `localStorage`, senha em texto puro | servidor de autenticação, hash de senha (bcrypt/argon2), sessão com cookie/token |
 | Perfil de admin | verificado no navegador (`src/components/guards.tsx`) | autorização no servidor — hoje qualquer pessoa poderia alterar o estado local |

@@ -1,0 +1,76 @@
+import type { Database } from '../storage'
+import type {
+  Appointment,
+  AppointmentStatus,
+  PaymentMethod,
+  Session,
+  UserRole,
+} from '../types'
+
+/**
+ * Contrato da camada de dados.
+ *
+ * As telas só conhecem `useAppState()`; por baixo dele existe um destes backends:
+ * `local` (localStorage, usado na demonstração e nos testes) ou `firebase`
+ * (Authentication + Firestore). Trocar de backend não muda nenhum componente visual.
+ *
+ * As operações são assíncronas porque o Firestore é: a tela recebe o resultado
+ * (ok/erro) do mesmo jeito que antes, apenas com `await`.
+ */
+
+export interface ActionResult {
+  ok: boolean
+  error?: string
+}
+
+export interface SignUpInput {
+  name: string
+  email: string
+  phone: string
+  password: string
+}
+
+export interface NewAppointmentInput {
+  serviceId: string
+  professionalId: string
+  dateISO: string
+  startMin: number
+  durationMin: number
+  price: number
+  clientName: string
+  clientNote?: string
+  /** Usado pelo encaixe no balcão: entra já confirmado. */
+  status?: AppointmentStatus
+  origin?: Appointment['origin']
+  title?: string
+}
+
+export type SessionResult = ActionResult & { session?: Session }
+export type CreateResult = ActionResult & { appointment?: Appointment }
+
+export interface Backend {
+  readonly mode: 'local' | 'firebase'
+  /**
+   * Avisa quando os dados mudam — nesta aba, em outra aba ou no servidor — e entrega o
+   * snapshot atual imediatamente na assinatura. É o único caminho pelo qual o estado
+   * das telas é atualizado: um segundo caminho de leitura inicial só criava corrida
+   * com o primeiro agendamento gravado.
+   */
+  subscribe(listener: (db: Database) => void): () => void
+  signIn(email: string, password: string): Promise<SessionResult>
+  signUp(input: SignUpInput): Promise<SessionResult>
+  signOut(): Promise<void>
+  requestPasswordReset(identifier: string): Promise<ActionResult>
+  createAppointment(
+    input: NewAppointmentInput,
+    session: Session | null,
+  ): Promise<CreateResult>
+  setAppointmentStatus(id: string, status: AppointmentStatus): Promise<void>
+  registerNoShow(id: string): Promise<ActionResult>
+  registerPayment(id: string, method: PaymentMethod): Promise<void>
+  rescheduleAppointment(id: string, dateISO: string, startMin: number): Promise<ActionResult>
+  resetDemo(): Promise<void>
+}
+
+/** Papel aceito pelo backend ao criar a conta (a gestão nunca se autocadastra). */
+export const SELF_SIGNUP_ROLE: UserRole = 'cliente'

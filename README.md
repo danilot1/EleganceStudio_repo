@@ -21,7 +21,7 @@ Cobre os dois lados do sistema:
   catálogo.
 
 > Leia também o **[STATUS.md](./STATUS.md)**: ele separa o que funciona de verdade do que é
-> apenas demonstração (não há back-end neste projeto). Nada é simulado como se estivesse pronto.
+> apenas demonstração. Nada é simulado como se estivesse pronto.
 
 ---
 
@@ -44,6 +44,29 @@ npm run lint        # análise estática (oxlint)
 npm run preview     # serve o resultado do build
 ```
 
+## Back-end (Firebase)
+
+O aplicativo funciona **em modo local por padrão**: sem configuração, os dados ficam no
+navegador, como na demonstração. Para ligar o Firebase:
+
+```bash
+cp .env.example .env   # preencha as variáveis VITE_FIREBASE_*
+npm run dev
+```
+
+Nenhuma tela muda: as telas conversam apenas com `useAppState()`, e `src/lib/backend/` decide
+qual implementação responde — `local` hoje, `firebase` nas próximas fases do plano.
+
+| Fase | Situação |
+| --- | --- |
+| 0. Base (dependência, `.env.example`, `firebase.json`) | concluída |
+| 1. Camada de dados isolada (`src/lib/backend`) | concluída |
+| 2. Autenticação real (Firebase Auth) | pendente |
+| 3. Agenda transacional no Firestore | pendente |
+| 4. Security Rules + testes de regra | pendente |
+| 5. Seed do catálogo e dos dados de exemplo | pendente |
+| 6. Publicação das rules | pendente |
+
 ## Contas de demonstração
 
 O primeiro acesso cria os dados de exemplo automaticamente no navegador
@@ -63,6 +86,8 @@ src/
 ├── components/       componentes reutilizáveis (shell, cards, stepper, campos, tokens visuais)
 ├── data/             catálogo de serviços, profissionais e registro de imagens
 ├── lib/              tipos, datas pt-BR, formatação, disponibilidade, no-show e persistência local
+│   ├── backend/      contrato de dados (`Backend`) + implementação local
+│   └── firebase.ts   inicialização do Firebase (Auth + Firestore), lida do `.env`
 ├── routes/           uma pasta por tela; routes/booking e routes/admin para os fluxos
 ├── state/            provedores de estado (dados/sessão e rascunho de agendamento)
 ├── App.tsx           mapa de rotas
@@ -108,7 +133,7 @@ no celular o mês usa sete colunas compactas e a visão Dia rola na horizontal, 
 ## Tecnologias
 
 React 19 · TypeScript · Vite · Tailwind CSS 4 · React Router 7 · lucide-react (ícones) ·
-Vitest + Testing Library (testes).
+Firebase (Authentication + Firestore, opcional) · Vitest + Testing Library (testes).
 
 ## Repositório GitHub
 

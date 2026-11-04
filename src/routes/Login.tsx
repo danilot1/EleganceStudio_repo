@@ -18,9 +18,9 @@ export function Login() {
 
   const from = (location.state as { from?: string } | null)?.from
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    const result = login(email, password, remember)
+    const result = await login(email, password, remember)
     if (!result.ok) {
       setError(result.error ?? 'Não foi possível entrar.')
       return

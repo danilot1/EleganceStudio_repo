@@ -15,9 +15,9 @@ export function ForgotPassword() {
   const [error, setError] = useState<string | null>(null)
   const [found, setFound] = useState(false)
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    const result = requestPasswordReset(value)
+    const result = await requestPasswordReset(value)
     if (!result.ok) {
       setFound(false)
       setError(result.error ?? 'Não foi possível verificar o contato.')

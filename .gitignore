@@ -25,3 +25,7 @@ dist-ssr
 
 # Pacote de entrega gerado localmente
 /elegance-studio.zip
+
+# Configuração local do Firebase (nunca versionar).
+.env
+.env.local

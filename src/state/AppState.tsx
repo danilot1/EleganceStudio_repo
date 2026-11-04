@@ -13,46 +13,19 @@ import {
   SERVICE_GROUPS,
   SERVICES,
 } from '../data/catalog'
-import { fitsWorkWindow, hasConflict } from '../lib/availability'
-import { isValidEmail, onlyDigits } from '../lib/format'
-import { canRegisterNoShow } from '../lib/noShow'
-import { loadDatabase, resetDatabase, saveDatabase, subscribeToDatabase, type Database } from '../lib/storage'
+import { backend } from '../lib/backend'
 import type {
-  Appointment,
-  AppointmentStatus,
-  PaymentMethod,
-  Session,
-  User,
-} from '../lib/types'
+  ActionResult,
+  CreateResult,
+  NewAppointmentInput,
+  SignUpInput,
+} from '../lib/backend/types'
+import { loadDatabase, type Database } from '../lib/storage'
+import type { Appointment, AppointmentStatus, PaymentMethod, Session, User } from '../lib/types'
+
+export type { ActionResult, NewAppointmentInput, SignUpInput }
 
 const SESSION_KEY = 'elegance-studio:session'
-
-export interface SignUpInput {
-  name: string
-  email: string
-  phone: string
-  password: string
-}
-
-export interface NewAppointmentInput {
-  serviceId: string
-  professionalId: string
-  dateISO: string
-  startMin: number
-  durationMin: number
-  price: number
-  clientName: string
-  clientNote?: string
-  /** Usado pelo encaixe no balcão: entra já confirmado. */
-  status?: AppointmentStatus
-  origin?: Appointment['origin']
-  title?: string
-}
-
-export interface ActionResult {
-  ok: boolean
-  error?: string
-}
 
 interface AppStateValue {
   services: typeof SERVICES
@@ -63,16 +36,16 @@ interface AppStateValue {
   /** Contas cadastradas — usadas pela gestão para consultar os dados das clientes. */
   users: User[]
   session: Session | null
-  login: (email: string, password: string, remember?: boolean) => ActionResult
-  signUp: (input: SignUpInput) => ActionResult
+  login: (email: string, password: string, remember?: boolean) => Promise<ActionResult>
+  signUp: (input: SignUpInput) => Promise<ActionResult>
   logout: () => void
-  requestPasswordReset: (identifier: string) => ActionResult
-  createAppointment: (input: NewAppointmentInput) => ActionResult & { appointment?: Appointment }
-  setAppointmentStatus: (id: string, status: AppointmentStatus) => void
+  requestPasswordReset: (identifier: string) => Promise<ActionResult>
+  createAppointment: (input: NewAppointmentInput) => Promise<CreateResult>
+  setAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<void>
   /** Marca a falta da cliente e libera o horário na agenda. */
-  registerNoShow: (id: string) => ActionResult
-  registerPayment: (id: string, method: PaymentMethod) => void
-  rescheduleAppointment: (id: string, dateISO: string, startMin: number) => ActionResult
+  registerNoShow: (id: string) => Promise<ActionResult>
+  registerPayment: (id: string, method: PaymentMethod) => Promise<void>
+  rescheduleAppointment: (id: string, dateISO: string, startMin: number) => Promise<ActionResult>
   resetDemo: () => void
 }
 
@@ -88,29 +61,25 @@ function readSession(): Session | null {
   }
 }
 
+/**
+ * Fachada única entre as telas e o banco.
+ *
+ * Nenhum componente conhece `localStorage` nem Firestore: tudo passa por aqui. O
+ * backend concreto vem de `lib/backend` (local hoje, Firebase quando configurado).
+ * O estado inicial é lido do cache local para o primeiro paint sair igual ao protótipo,
+ * e é substituído pelos dados do backend assim que ele responde.
+ */
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  // App somente no navegador: os dados e a sessão são lidos já na primeira renderização,
-  // senão as rotas protegidas redirecionariam para o login antes de saber que há sessão.
   const [db, setDb] = useState<Database>(() => loadDatabase())
   const [session, setSession] = useState<Session | null>(() => readSession())
 
   useEffect(() => {
-    saveDatabase(db)
-  }, [db])
-
-  // Duas abas abertas (a cliente agendando e a gestão olhando a agenda) compartilham o
-  // localStorage. Sem este ouvinte, um horário reservado em uma aba continuaria livre na
-  // outra e o conflito só apareceria ao confirmar. O estado de uma aba nova é aplicado
-  // apenas quando o conteúdo realmente muda, para não haver gravação em pingue-pongue.
-  useEffect(
-    () =>
-      subscribeToDatabase((next) => {
-        setDb((current) =>
-          JSON.stringify(current) === JSON.stringify(next) ? current : next,
-        )
-      }),
-    [],
-  )
+    // A assinatura cobre os três casos — gravação nesta aba, em outra aba e no servidor —
+    // e já entrega o snapshot atual. Antes existiam dois caminhos (efeito de save e
+    // evento `storage`), e a leitura inicial assíncrona podia sobrescrever uma reserva
+    // feita logo depois de a tela abrir.
+    return backend.subscribe((next) => setDb(next))
+  }, [])
 
   /**
    * "Lembrar-me neste dispositivo" decide onde a sessão é guardada:
@@ -131,220 +100,64 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(
-    (email: string, password: string, remember = true): ActionResult => {
-      const user = db.users.find(
-        (item: User) => item.email.toLowerCase() === email.trim().toLowerCase(),
-      )
-      if (!user || user.password !== password) {
-        return { ok: false, error: 'E-mail ou senha não conferem.' }
-      }
-      persistSession(
-        {
-          userId: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-        remember,
-      )
-      return { ok: true }
+    async (email: string, password: string, remember = true): Promise<ActionResult> => {
+      const result = await backend.signIn(email, password)
+      if (result.ok && result.session) persistSession(result.session, remember)
+      return { ok: result.ok, error: result.error }
     },
-    [db.users, persistSession],
+    [persistSession],
   )
 
   const signUp = useCallback(
-    (input: SignUpInput): ActionResult => {
-      const email = input.email.trim().toLowerCase()
-      if (!input.name.trim()) return { ok: false, error: 'Informe o nome completo.' }
-      if (!isValidEmail(email)) return { ok: false, error: 'Informe um e-mail válido.' }
-      if (onlyDigits(input.phone).length < 10) {
-        return { ok: false, error: 'Informe um telefone/WhatsApp válido com DDD.' }
-      }
-      if (input.password.length < 8) {
-        return { ok: false, error: 'A senha precisa ter no mínimo 8 caracteres.' }
-      }
-      if (db.users.some((item) => item.email.toLowerCase() === email)) {
-        return { ok: false, error: 'Já existe uma conta com este e-mail.' }
-      }
-
-      const user: User = {
-        id: `user-${Date.now()}`,
-        name: input.name.trim(),
-        email,
-        phone: input.phone,
-        password: input.password,
-        role: 'cliente',
-        createdAtISO: new Date().toISOString(),
-      }
-      setDb((current) => ({ ...current, users: [...current.users, user] }))
-      persistSession({
-        userId: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      })
-      return { ok: true }
+    async (input: SignUpInput): Promise<ActionResult> => {
+      const result = await backend.signUp(input)
+      if (result.ok && result.session) persistSession(result.session)
+      return { ok: result.ok, error: result.error }
     },
-    [db.users, persistSession],
+    [persistSession],
   )
 
-  const logout = useCallback(() => persistSession(null), [persistSession])
+  const logout = useCallback(() => {
+    persistSession(null)
+    void backend.signOut()
+  }, [persistSession])
 
-  /**
-   * Recuperação de senha: apenas verifica se o contato existe.
-   * NENHUMA mensagem é enviada — não há servidor de e-mail/WhatsApp neste protótipo.
-   */
   const requestPasswordReset = useCallback(
-    (identifier: string): ActionResult => {
-      const value = identifier.trim().toLowerCase()
-      const user = db.users.find(
-        (item) =>
-          item.email.toLowerCase() === value || onlyDigits(item.phone) === onlyDigits(value),
-      )
-      if (!user) {
-        return { ok: false, error: 'Não encontramos uma conta com este e-mail ou WhatsApp.' }
-      }
-      return { ok: true }
-    },
-    [db.users],
+    (identifier: string): Promise<ActionResult> => backend.requestPasswordReset(identifier),
+    [],
   )
 
   const createAppointment = useCallback(
-    (input: NewAppointmentInput): ActionResult & { appointment?: Appointment } => {
-      if (
-        !fitsWorkWindow({
-          dateISO: input.dateISO,
-          startMin: input.startMin,
-          durationMin: input.durationMin,
-        })
-      ) {
-        return {
-          ok: false,
-          error: 'Este serviço não cabe no expediente do dia. Escolha outro horário.',
-        }
-      }
-
-      if (
-        hasConflict({
-          dateISO: input.dateISO,
-          startMin: input.startMin,
-          durationMin: input.durationMin,
-          professionalId: input.professionalId,
-          appointments: db.appointments,
-        })
-      ) {
-        return { ok: false, error: 'Este horário acabou de ser ocupado. Escolha outro.' }
-      }
-
-      const appointment: Appointment = {
-        id: `apt-${Date.now()}`,
-        clientName: input.clientName.trim(),
-        clientUserId: session?.role === 'cliente' ? session.userId : undefined,
-        serviceId: input.serviceId,
-        title: input.title,
-        professionalId: input.professionalId,
-        dateISO: input.dateISO,
-        startMin: input.startMin,
-        durationMin: input.durationMin,
-        price: input.price,
-        status: input.status ?? 'aguardando',
-        payment: 'pendente',
-        origin: input.origin ?? 'app',
-        note: input.clientNote?.trim() || undefined,
-      }
-
-      setDb((current) => ({ ...current, appointments: [...current.appointments, appointment] }))
-      return { ok: true, appointment }
-    },
-    [db.appointments, session],
+    (input: NewAppointmentInput): Promise<CreateResult> =>
+      backend.createAppointment(input, session),
+    [session],
   )
 
-  const setAppointmentStatus = useCallback((id: string, status: AppointmentStatus) => {
-    setDb((current) => ({
-      ...current,
-      appointments: current.appointments.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status,
-              payment:
-                status === 'cancelado' && item.payment === 'pendente' ? 'pendente' : item.payment,
-            }
-          : item,
-      ),
-    }))
-  }, [])
+  const setAppointmentStatus = useCallback(
+    (id: string, status: AppointmentStatus): Promise<void> =>
+      backend.setAppointmentStatus(id, status),
+    [],
+  )
 
   const registerNoShow = useCallback(
-    (id: string): ActionResult => {
-      const target = db.appointments.find((item) => item.id === id)
-      if (!target) return { ok: false, error: 'Agendamento não encontrado.' }
-      if (!canRegisterNoShow(target)) {
-        return {
-          ok: false,
-          error:
-            'Só é possível registrar falta depois do horário marcado e antes de concluir ou cancelar o atendimento.',
-        }
-      }
-      setDb((current) => ({
-        ...current,
-        appointments: current.appointments.map((item) =>
-          item.id === id ? { ...item, status: 'faltou', note: 'Cliente não compareceu' } : item,
-        ),
-      }))
-      return { ok: true }
-    },
-    [db.appointments],
+    (id: string): Promise<ActionResult> => backend.registerNoShow(id),
+    [],
   )
 
-  const registerPayment = useCallback((id: string, method: PaymentMethod) => {
-    setDb((current) => ({
-      ...current,
-      appointments: current.appointments.map((item) =>
-        item.id === id ? { ...item, payment: 'pago', paymentMethod: method } : item,
-      ),
-    }))
-  }, [])
+  const registerPayment = useCallback(
+    (id: string, method: PaymentMethod): Promise<void> => backend.registerPayment(id, method),
+    [],
+  )
 
   const rescheduleAppointment = useCallback(
-    (id: string, dateISO: string, startMin: number): ActionResult => {
-      const target = db.appointments.find((item) => item.id === id)
-      if (!target) return { ok: false, error: 'Agendamento não encontrado.' }
-      if (
-        !fitsWorkWindow({
-          dateISO,
-          startMin,
-          durationMin: target.durationMin,
-        })
-      ) {
-        return { ok: false, error: 'Este serviço não cabe no expediente do dia escolhido.' }
-      }
-      if (
-        hasConflict({
-          dateISO,
-          startMin,
-          durationMin: target.durationMin,
-          professionalId: target.professionalId,
-          appointments: db.appointments,
-          ignoreAppointmentId: id,
-        })
-      ) {
-        return { ok: false, error: 'Horário indisponível para esta profissional.' }
-      }
-      setDb((current) => ({
-        ...current,
-        appointments: current.appointments.map((item) =>
-          item.id === id ? { ...item, dateISO, startMin, status: 'aguardando' } : item,
-        ),
-      }))
-      return { ok: true }
-    },
-    [db.appointments],
+    (id: string, dateISO: string, startMin: number): Promise<ActionResult> =>
+      backend.rescheduleAppointment(id, dateISO, startMin),
+    [],
   )
 
   const resetDemo = useCallback(() => {
-    setDb(resetDatabase())
     persistSession(null)
+    void backend.resetDemo()
   }, [persistSession])
 
   const value = useMemo<AppStateValue>(

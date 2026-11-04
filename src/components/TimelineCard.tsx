@@ -103,7 +103,7 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
               type="button"
               className="btn-outline btn-sm w-full"
               onClick={() =>
-                setAppointmentStatus(
+                void setAppointmentStatus(
                   appointment.id,
                   appointment.status === 'em-atendimento' ? 'concluido' : 'em-atendimento',
                 )
@@ -192,7 +192,7 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
                     key={status}
                     type="button"
                     className={cx('chip', appointment.status === status && 'chip-active')}
-                    onClick={() => setAppointmentStatus(appointment.id, status)}
+                    onClick={() => void setAppointmentStatus(appointment.id, status)}
                   >
                     {status === 'em-atendimento' ? 'Em Atendimento' : status === 'aguardando' ? 'Aguardando' : status === 'concluido' ? 'Concluído' : status === 'cancelado' ? 'Cancelado' : 'Confirmado'}
                   </button>
@@ -204,8 +204,8 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
               <button
                 type="button"
                 className="btn-outline btn-sm"
-                onClick={() => {
-                  setAppointmentStatus(appointment.id, 'confirmado')
+                onClick={async () => {
+                  await setAppointmentStatus(appointment.id, 'confirmado')
                   setNoShowError(null)
                 }}
               >
@@ -216,8 +216,8 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
               <button
                 type="button"
                 className="btn-outline btn-sm"
-                onClick={() => {
-                  const result = registerNoShow(appointment.id)
+                onClick={async () => {
+                  const result = await registerNoShow(appointment.id)
                   setNoShowError(result.ok ? null : (result.error ?? 'Não foi possível registrar.'))
                 }}
               >
@@ -248,7 +248,7 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
                   key={method}
                   type="button"
                   className="chip"
-                  onClick={() => registerPayment(appointment.id, method)}
+                  onClick={() => void registerPayment(appointment.id, method)}
                 >
                   <Banknote className="size-3.5" aria-hidden />
                   {PAYMENT_LABEL[method]}
@@ -263,8 +263,8 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
               professionalId={appointment.professionalId}
               durationMin={appointment.durationMin}
               ignoreAppointmentId={appointment.id}
-              onChange={(selection) => {
-                const result = rescheduleAppointment(
+              onChange={async (selection) => {
+                const result = await rescheduleAppointment(
                   appointment.id,
                   selection.dateISO,
                   selection.startMin,
@@ -301,13 +301,13 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
             <button
               type="button"
               className="btn-primary btn-sm flex-1"
-              onClick={() => {
+              onClick={async () => {
                 const name = fitInName.trim()
                 if (!name) {
                   setFitInError('Informe o nome da cliente.')
                   return
                 }
-                const result = createAppointment({
+                const result = await createAppointment({
                   serviceId: appointment.serviceId,
                   professionalId: appointment.professionalId,
                   dateISO: appointment.dateISO,
