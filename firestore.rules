@@ -48,6 +48,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Documento de agenda (um por profissional/dia): é o cadeado da reserva. A
+    // transação do cliente lê e grava aqui, por isso a escrita é liberada — as regras
+    // não conseguem validar sobreposição de horário. O documento guarda apenas
+    // identificador, horários e status, nunca dados pessoais.
+    match /agenda/{dayId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.professionalId is string
+        && request.resource.data.dateISO is string
+        && request.resource.data.blocks is list;
+      allow delete: if isAdmin();
+    }
+
     // Ajustes de duração/preço/visibilidade: catálogo é público para leitura, escrita
     // apenas da gestão.
     match /serviceOverrides/{serviceId} {

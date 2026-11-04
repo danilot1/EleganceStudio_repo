@@ -36,7 +36,7 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 | Item | Como está hoje | O que falta para ser real |
 | --- | --- | --- |
 | Persistência | `localStorage` do navegador (`src/lib/backend/local.ts`) | adaptador Firestore (fase 3); a interface já está pronta e as telas não mudam |
-| Conflito de horário | checado antes de gravar, com o estado sincronizado entre abas do mesmo navegador | transação no servidor: duas gravações simultâneas em aparelhos diferentes ainda podem competir |
+| Conflito de horário | no modo local, checado antes de gravar com o estado sincronizado entre abas; no modo Firebase, transação no documento `agenda/{profissional}__{dia}` — duas gravações simultâneas são serializadas | nenhuma pendência para o conflito; falta apenas rodar a verificação em dois aparelhos reais |
 | Autenticação | modo local: usuário e senha no `localStorage`, senha em texto puro; com `.env`, o Firebase Auth assume (a senha nunca passa pelo Firestore) | no modo local, servidor de autenticação com hash de senha |
 | Perfil de admin | verificado no navegador (`src/components/guards.tsx`); com `.env`, as regras do Firestore repetem a checagem | testes das regras no emulador (fase 4) e custom claim `role: admin` para a gestão |
 | Dados de exemplo | carga inicial em `src/lib/storage.ts`, deslocada para "hoje" a cada dia | dados reais do estúdio |

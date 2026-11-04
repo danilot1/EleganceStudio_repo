@@ -17,12 +17,20 @@ import {
   getDocs,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore'
 import { SERVICES } from '../../data/catalog'
+import {
+  agendaDocId,
+  blocksOf,
+  busyAppointments,
+  removeBlock,
+  upsertBlock,
+} from '../agendaDoc'
 import { fitsWorkWindow, hasConflict } from '../availability'
 import { addDaysISO, todayISO } from '../dates'
 import { isValidEmail, onlyDigits } from '../format'
@@ -39,26 +47,33 @@ import {
   type User,
 } from '../types'
 import { validateServicePatch } from './servicePatch'
-import type { Backend, SessionResult } from './types'
+import type { ActionResult, Backend, SessionResult } from './types'
 
 /**
  * Adaptador Firebase: Authentication para a sessão e Firestore para os dados.
  *
- * As telas não sabem que ele existe — implementa o mesmo contrato `Backend` do modo
- * local. O carregamento é sob demanda (`import()` em `backend/index.ts`), então o
- * protótipo sem `.env` não paga o custo do SDK.
+ * Reserva transacional (fase 3): cada profissional/dia tem um documento em `agenda`
+ * com os blocos ocupados. Criar ou reagendar lê esse documento e grava o atendimento +
+ * o bloco na MESMA transação — duas tentativas simultâneas no mesmo horário são
+ * serializadas pelo Firestore, e a segunda recebe "horário ocupado".
  *
- * Limite conhecido desta fase: a checagem de conflito acontece antes da gravação
- * (otimista). A transação por profissional/dia, que elimina a corrida entre aparelhos,
- * é a fase 3 do plano.
+ * Limite conhecido: a transação roda no cliente (o SDK do Firestore só aceita leitura
+ * de documento dentro de transação, e não há Cloud Functions neste projeto). Por isso
+ * as regras de `agenda` são permissivas — um cliente malicioso poderia corromper o
+ * documento do dia. As regras impedem acesso a dados de outras clientes em
+ * `appointments`, mas não conseguem validar sobreposição de horário.
  */
 
 const USERS = 'users'
 const APPOINTMENTS = 'appointments'
+const AGENDA = 'agenda'
 const SERVICE_OVERRIDES = 'serviceOverrides'
 
 /** Janela de histórico carregada no painel (dias para trás). */
 const HISTORY_DAYS = 90
+
+/** Erro de domínio: horário já ocupado dentro da transação. */
+class SlotTaken extends Error {}
 
 interface ProfileData {
   name?: string
@@ -144,19 +159,18 @@ async function sessionFor(user: FirebaseUser): Promise<Session> {
   }
 }
 
-/** Agendamentos de uma profissional em um dia — base da checagem de conflito. */
-async function appointmentsOfProfessional(
-  professionalId: string,
-  dateISO: string,
-): Promise<Appointment[]> {
-  const snapshot = await getDocs(
-    query(
-      collection(firebaseDb(), APPOINTMENTS),
-      where('professionalId', '==', professionalId),
-      where('dateISO', '==', dateISO),
-    ),
-  )
-  return snapshot.docs.map((item) => toAppointment(item.id, item.data()))
+/** Documento de agenda da profissional naquele dia. */
+function agendaRef(professionalId: string, dateISO: string) {
+  return doc(firebaseDb(), AGENDA, agendaDocId(professionalId, dateISO))
+}
+
+function dayPayload(professionalId: string, dateISO: string, blocks: unknown) {
+  return {
+    professionalId,
+    dateISO,
+    blocks,
+    updatedAt: serverTimestamp(),
+  }
 }
 
 export function createFirestoreBackend(): Backend {
@@ -322,68 +336,120 @@ export function createFirestoreBackend(): Backend {
         }
       }
 
+      const database = firebaseDb()
+      const appointmentRef = doc(collection(database, APPOINTMENTS))
+      const dayRef = agendaRef(input.professionalId, input.dateISO)
+      const status = input.status ?? 'aguardando'
+      const appointment: Appointment = {
+        id: appointmentRef.id,
+        clientName: input.clientName.trim(),
+        clientUserId: session?.role === 'cliente' ? session.userId : undefined,
+        serviceId: input.serviceId,
+        title: input.title,
+        professionalId: input.professionalId,
+        dateISO: input.dateISO,
+        startMin: input.startMin,
+        durationMin: input.durationMin,
+        price: input.price,
+        status,
+        payment: 'pendente',
+        origin: input.origin ?? 'app',
+        note: input.clientNote?.trim() || undefined,
+      }
+
       try {
-        const day = await appointmentsOfProfessional(input.professionalId, input.dateISO)
-        if (
-          hasConflict({
-            dateISO: input.dateISO,
-            startMin: input.startMin,
-            durationMin: input.durationMin,
-            professionalId: input.professionalId,
-            appointments: day,
+        await runTransaction(database, async (transaction) => {
+          // Lê o dia inteiro da profissional: é este documento que serializa a disputa.
+          const day = await transaction.get(dayRef)
+          const blocks = blocksOf(day.exists() ? day.data() : null)
+
+          if (
+            hasConflict({
+              dateISO: input.dateISO,
+              startMin: input.startMin,
+              durationMin: input.durationMin,
+              professionalId: input.professionalId,
+              appointments: busyAppointments(input.professionalId, input.dateISO, blocks),
+            })
+          ) {
+            throw new SlotTaken()
+          }
+
+          transaction.set(appointmentRef, {
+            clientName: appointment.clientName,
+            clientUserId: appointment.clientUserId ?? null,
+            serviceId: appointment.serviceId,
+            title: appointment.title ?? null,
+            professionalId: appointment.professionalId,
+            dateISO: appointment.dateISO,
+            startMin: appointment.startMin,
+            durationMin: appointment.durationMin,
+            price: appointment.price,
+            status: appointment.status,
+            payment: appointment.payment,
+            paymentMethod: null,
+            origin: appointment.origin,
+            note: appointment.note ?? null,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
           })
-        ) {
-          return { ok: false, error: 'Este horário acabou de ser ocupado. Escolha outro.' }
-        }
 
-        const reference = doc(collection(firebaseDb(), APPOINTMENTS))
-        const appointment: Appointment = {
-          id: reference.id,
-          clientName: input.clientName.trim(),
-          clientUserId: session?.role === 'cliente' ? session.userId : undefined,
-          serviceId: input.serviceId,
-          title: input.title,
-          professionalId: input.professionalId,
-          dateISO: input.dateISO,
-          startMin: input.startMin,
-          durationMin: input.durationMin,
-          price: input.price,
-          status: input.status ?? 'aguardando',
-          payment: 'pendente',
-          origin: input.origin ?? 'app',
-          note: input.clientNote?.trim() || undefined,
-        }
-
-        await setDoc(reference, {
-          clientName: appointment.clientName,
-          clientUserId: appointment.clientUserId ?? null,
-          serviceId: appointment.serviceId,
-          title: appointment.title ?? null,
-          professionalId: appointment.professionalId,
-          dateISO: appointment.dateISO,
-          startMin: appointment.startMin,
-          durationMin: appointment.durationMin,
-          price: appointment.price,
-          status: appointment.status,
-          payment: appointment.payment,
-          paymentMethod: appointment.paymentMethod ?? null,
-          origin: appointment.origin,
-          note: appointment.note ?? null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+          transaction.set(
+            dayRef,
+            dayPayload(
+              input.professionalId,
+              input.dateISO,
+              upsertBlock(blocks, {
+                appointmentId: appointmentRef.id,
+                startMin: input.startMin,
+                durationMin: input.durationMin,
+                status,
+              }),
+            ),
+          )
         })
 
         return { ok: true, appointment }
       } catch (error) {
+        if (error instanceof SlotTaken) {
+          return { ok: false, error: 'Este horário acabou de ser ocupado. Escolha outro.' }
+        }
         return { ok: false, error: describeError(error) }
       }
     },
 
     async setAppointmentStatus(id, status) {
+      const database = firebaseDb()
+      const appointmentRef = doc(database, APPOINTMENTS, id)
+
       try {
-        await updateDoc(doc(firebaseDb(), APPOINTMENTS, id), {
-          status,
-          updatedAt: serverTimestamp(),
+        await runTransaction(database, async (transaction) => {
+          const snapshot = await transaction.get(appointmentRef)
+          if (!snapshot.exists()) return
+
+          const appointment = toAppointment(snapshot.id, snapshot.data())
+          const dayRef = agendaRef(appointment.professionalId, appointment.dateISO)
+          const day = await transaction.get(dayRef)
+
+          transaction.update(appointmentRef, { status, updatedAt: serverTimestamp() })
+
+          // Cancelado/falta liberam a vaga: o bloco continua no dia com o novo status,
+          // e `hasConflict` o ignora.
+          if (day.exists()) {
+            transaction.set(
+              dayRef,
+              dayPayload(
+                appointment.professionalId,
+                appointment.dateISO,
+                upsertBlock(blocksOf(day.data()), {
+                  appointmentId: id,
+                  startMin: appointment.startMin,
+                  durationMin: appointment.durationMin,
+                  status,
+                }),
+              ),
+            )
+          }
         })
       } catch (error) {
         console.error('Falha ao mudar o status do atendimento', error)
@@ -391,26 +457,55 @@ export function createFirestoreBackend(): Backend {
     },
 
     async registerNoShow(id) {
+      const database = firebaseDb()
+      const appointmentRef = doc(database, APPOINTMENTS, id)
+      let outcome: ActionResult = { ok: true }
+
       try {
-        const reference = doc(firebaseDb(), APPOINTMENTS, id)
-        const snapshot = await getDoc(reference)
-        if (!snapshot.exists()) return { ok: false, error: 'Agendamento não encontrado.' }
-
-        const appointment = toAppointment(snapshot.id, snapshot.data())
-        if (!canRegisterNoShow(appointment)) {
-          return {
-            ok: false,
-            error:
-              'Só é possível registrar falta depois do horário marcado e antes de concluir ou cancelar o atendimento.',
+        await runTransaction(database, async (transaction) => {
+          const snapshot = await transaction.get(appointmentRef)
+          if (!snapshot.exists()) {
+            outcome = { ok: false, error: 'Agendamento não encontrado.' }
+            return
           }
-        }
 
-        await updateDoc(reference, {
-          status: 'faltou',
-          note: 'Cliente não compareceu',
-          updatedAt: serverTimestamp(),
+          const appointment = toAppointment(snapshot.id, snapshot.data())
+          if (!canRegisterNoShow(appointment)) {
+            outcome = {
+              ok: false,
+              error:
+                'Só é possível registrar falta depois do horário marcado e antes de concluir ou cancelar o atendimento.',
+            }
+            return
+          }
+
+          const dayRef = agendaRef(appointment.professionalId, appointment.dateISO)
+          const day = await transaction.get(dayRef)
+
+          transaction.update(appointmentRef, {
+            status: 'faltou',
+            note: 'Cliente não compareceu',
+            updatedAt: serverTimestamp(),
+          })
+
+          if (day.exists()) {
+            transaction.set(
+              dayRef,
+              dayPayload(
+                appointment.professionalId,
+                appointment.dateISO,
+                upsertBlock(blocksOf(day.data()), {
+                  appointmentId: id,
+                  startMin: appointment.startMin,
+                  durationMin: appointment.durationMin,
+                  status: 'faltou',
+                }),
+              ),
+            )
+          }
         })
-        return { ok: true }
+
+        return outcome
       } catch (error) {
         return { ok: false, error: describeError(error) }
       }
@@ -429,37 +524,83 @@ export function createFirestoreBackend(): Backend {
     },
 
     async rescheduleAppointment(id, dateISO, startMin) {
+      const database = firebaseDb()
+      const appointmentRef = doc(database, APPOINTMENTS, id)
+      let outcome: ActionResult = { ok: true }
+
       try {
-        const reference = doc(firebaseDb(), APPOINTMENTS, id)
-        const snapshot = await getDoc(reference)
-        if (!snapshot.exists()) return { ok: false, error: 'Agendamento não encontrado.' }
+        await runTransaction(database, async (transaction) => {
+          const snapshot = await transaction.get(appointmentRef)
+          if (!snapshot.exists()) {
+            outcome = { ok: false, error: 'Agendamento não encontrado.' }
+            return
+          }
 
-        const target = toAppointment(snapshot.id, snapshot.data())
-        if (!fitsWorkWindow({ dateISO, startMin, durationMin: target.durationMin })) {
-          return { ok: false, error: 'Este serviço não cabe no expediente do dia escolhido.' }
-        }
+          const target = toAppointment(snapshot.id, snapshot.data())
+          if (!fitsWorkWindow({ dateISO, startMin, durationMin: target.durationMin })) {
+            outcome = {
+              ok: false,
+              error: 'Este serviço não cabe no expediente do dia escolhido.',
+            }
+            return
+          }
 
-        const day = await appointmentsOfProfessional(target.professionalId, dateISO)
-        if (
-          hasConflict({
+          const fromRef = agendaRef(target.professionalId, target.dateISO)
+          const toRef = agendaRef(target.professionalId, dateISO)
+          const fromDay = await transaction.get(fromRef)
+          // Mesmo dia: uma leitura só; a transação exige todas as leituras antes da
+          // primeira gravação.
+          const toDay = fromRef.path === toRef.path ? fromDay : await transaction.get(toRef)
+
+          const targetBlocks = blocksOf(toDay.exists() ? toDay.data() : null)
+          if (
+            hasConflict({
+              dateISO,
+              startMin,
+              durationMin: target.durationMin,
+              professionalId: target.professionalId,
+              appointments: busyAppointments(target.professionalId, dateISO, targetBlocks),
+              ignoreAppointmentId: id,
+            })
+          ) {
+            outcome = { ok: false, error: 'Horário indisponível para esta profissional.' }
+            return
+          }
+
+          transaction.update(appointmentRef, {
             dateISO,
             startMin,
-            durationMin: target.durationMin,
-            professionalId: target.professionalId,
-            appointments: day,
-            ignoreAppointmentId: id,
+            status: 'aguardando',
+            updatedAt: serverTimestamp(),
           })
-        ) {
-          return { ok: false, error: 'Horário indisponível para esta profissional.' }
-        }
 
-        await updateDoc(reference, {
-          dateISO,
-          startMin,
-          status: 'aguardando',
-          updatedAt: serverTimestamp(),
+          transaction.set(
+            toRef,
+            dayPayload(
+              target.professionalId,
+              dateISO,
+              upsertBlock(targetBlocks, {
+                appointmentId: id,
+                startMin,
+                durationMin: target.durationMin,
+                status: 'aguardando',
+              }),
+            ),
+          )
+
+          if (fromRef.path !== toRef.path && fromDay.exists()) {
+            transaction.set(
+              fromRef,
+              dayPayload(
+                target.professionalId,
+                target.dateISO,
+                removeBlock(blocksOf(fromDay.data()), id),
+              ),
+            )
+          }
         })
-        return { ok: true }
+
+        return outcome
       } catch (error) {
         return { ok: false, error: describeError(error) }
       }

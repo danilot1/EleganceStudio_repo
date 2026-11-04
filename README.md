@@ -62,7 +62,7 @@ qual implementação responde — `local` hoje, `firebase` nas próximas fases d
 | 0. Base (dependência, `.env.example`, `firebase.json`) | concluída |
 | 1. Camada de dados isolada (`src/lib/backend`) | concluída |
 | 2. Autenticação real (Firebase Auth) | concluída — login, cadastro, recuperação por e-mail e "Lembrar-me" |
-| 3. Agenda transacional no Firestore | escrita no Firestore feita; falta a transação por profissional/dia |
+| 3. Agenda transacional no Firestore | concluída — `agenda/{profissional}__{dia}` serializa a reserva |
 | 4. Security Rules + testes de regra | regras em `firestore.rules`; testes pendentes |
 | 5. Seed do catálogo e dos dados de exemplo | pendente |
 | 6. Publicação das rules | pendente |
