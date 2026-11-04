@@ -100,3 +100,59 @@ export function upsertBlock(blocks: AgendaBlock[], block: AgendaBlock): AgendaBl
 export function removeBlock(blocks: AgendaBlock[], appointmentId: string): AgendaBlock[] {
   return blocks.filter((item) => item.appointmentId !== appointmentId)
 }
+
+/** Documento de agenda reconstruído a partir dos atendimentos. */
+export interface AgendaDayDoc {
+  docId: string
+  professionalId: string
+  dateISO: string
+  blocks: AgendaBlock[]
+}
+
+/**
+ * Reconstrói os documentos de agenda a partir dos atendimentos.
+ *
+ * É o caminho de backfill: os atendimentos são a fonte da verdade e o documento do dia
+ * é um índice derivado deles. Serve para os agendamentos gravados antes da fase 3
+ * (quando o documento de agenda ainda não existia) e para reparar um dia corrompido.
+ */
+export function agendaDocsFrom(appointments: Appointment[]): AgendaDayDoc[] {
+  const byDay = new Map<string, AgendaDayDoc>()
+
+  for (const item of appointments) {
+    if (!item.professionalId || !item.dateISO) continue
+    if (!Number.isFinite(item.startMin) || !Number.isFinite(item.durationMin)) continue
+    if (item.durationMin <= 0) continue
+
+    const docId = agendaDocId(item.professionalId, item.dateISO)
+    const day = byDay.get(docId) ?? {
+      docId,
+      professionalId: item.professionalId,
+      dateISO: item.dateISO,
+      blocks: [],
+    }
+    day.blocks = upsertBlock(day.blocks, {
+      appointmentId: item.id,
+      startMin: item.startMin,
+      durationMin: item.durationMin,
+      status: item.status,
+    })
+    byDay.set(docId, day)
+  }
+
+  return [...byDay.values()].sort((a, b) => (a.docId < b.docId ? -1 : 1))
+}
+
+/**
+ * Junta o que já está gravado com o que foi derivado dos atendimentos.
+ *
+ * Blocos de atendimentos que ainda existem são substituídos pelo derivado (a fonte da
+ * verdade); blocos órfãos — de um atendimento que não foi lido — são preservados para
+ * que o backfill nunca apague uma reserva que ele não conhece.
+ */
+export function mergeBlocks(existing: AgendaBlock[], derived: AgendaBlock[]): AgendaBlock[] {
+  const derivedIds = new Set(derived.map((block) => block.appointmentId))
+  const kept = existing.filter((block) => !derivedIds.has(block.appointmentId))
+  const merged = derived.reduce((acc, block) => upsertBlock(acc, block), kept)
+  return merged.sort((a, b) => a.startMin - b.startMin)
+}

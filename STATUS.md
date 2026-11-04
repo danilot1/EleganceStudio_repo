@@ -31,6 +31,7 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 | Gestão de serviços e horários | `src/routes/admin/AdminAgenda.tsx`, `src/lib/backend/local.ts` | a gestão ajusta duração, preço e ativa/desativa cada serviço; a nova duração passa a reservar os blocos da agenda e a montar os horários do agendamento |
 | Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 63 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda, no-show e documento de agenda) |
 | Verificação das regras do Firestore | `tests/rules.test.ts` | 17 testes no emulador (`npm run test:rules`): dono do agendamento, convidada, autopromoção a gestão e catálogo restrito |
+| Seed e backfill da agenda | `scripts/seed.ts`, `src/lib/agendaDoc.ts` | `npm run seed:demo` recria contas, agendamentos e documentos de agenda no emulador; `npm run seed:backfill` reconstrói `agenda/{profissional}__{dia}` dos agendamentos existentes (inclusive os anteriores à fase 3) e preserva blocos órfãos; os dois conferem o resultado relendo do Firestore |
 
 ## 2. Existe, mas é demonstração (NÃO é produção)
 
@@ -40,7 +41,7 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 | Conflito de horário | no modo local, checado antes de gravar com o estado sincronizado entre abas; no modo Firebase, transação no documento `agenda/{profissional}__{dia}` — duas gravações simultâneas são serializadas | nenhuma pendência para o conflito; falta apenas rodar a verificação em dois aparelhos reais |
 | Autenticação | modo local: usuário e senha no `localStorage`, senha em texto puro; com `.env`, o Firebase Auth assume (a senha nunca passa pelo Firestore) | no modo local, servidor de autenticação com hash de senha |
 | Perfil de admin | verificado no navegador (`src/components/guards.tsx`); com `.env`, as regras do Firestore repetem a checagem | testes das regras no emulador (fase 4) e custom claim `role: admin` para a gestão |
-| Dados de exemplo | carga inicial em `src/lib/storage.ts`, deslocada para "hoje" a cada dia | dados reais do estúdio |
+| Dados de exemplo | carga inicial em `src/lib/storage.ts`, deslocada para "hoje" a cada dia; no Firebase, a mesma carga é gravada por `npm run seed:demo` | dados reais do estúdio |
 | Indicadores do painel | calculados sobre os dados locais | calcular no servidor, com histórico e filtros por período |
 | Taxa de no-show | calculada no navegador sobre os atendimentos locais | calcular no servidor, sobre o histórico completo do estúdio |
 | Fotos | placeholders em CSS | arquivos em `public/images/` + `src/data/images.ts` |

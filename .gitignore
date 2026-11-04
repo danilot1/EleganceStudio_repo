@@ -34,3 +34,6 @@ dist-ssr
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Build do script de seed
+dist-seed/

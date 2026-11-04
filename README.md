@@ -42,6 +42,8 @@ npm run build       # gera a versão de produção em dist/
 npm test            # roda os testes (Vitest + Testing Library)
 npm run lint        # análise estática (oxlint)
 npm run test:rules  # testes das regras no emulador (precisa de Java)
+npm run seed:demo   # carrega a demonstração no emulador (precisa de Java)
+npm run seed:backfill  # reconstrói os documentos de agenda dos agendamentos
 npm run preview     # serve o resultado do build
 ```
 
@@ -65,7 +67,7 @@ qual implementação responde — `local` hoje, `firebase` nas próximas fases d
 | 2. Autenticação real (Firebase Auth) | concluída — login, cadastro, recuperação por e-mail e "Lembrar-me" |
 | 3. Agenda transacional no Firestore | concluída — `agenda/{profissional}__{dia}` serializa a reserva |
 | 4. Security Rules + testes de regra | concluída — 17 testes no emulador (`npm run test:rules`) |
-| 5. Seed do catálogo e dos dados de exemplo | pendente |
+| 5. Seed e backfill da agenda | concluída — `scripts/seed.ts` grava a demonstração e reconstrói `agenda/` a partir dos agendamentos, com verificação no emulador |
 | 6. Publicação das rules | pendente |
 
 ## Contas de demonstração

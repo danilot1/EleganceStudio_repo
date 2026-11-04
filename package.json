@@ -9,6 +9,9 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore --project elegance-rules-test \"vitest run --config vitest.rules.config.ts\"",
+    "seed:build": "vite build --config scripts/vite.seed.config.ts",
+    "seed:demo": "npm run seed:build && firebase emulators:exec --only auth,firestore --project elegance-demo \"node dist-seed/seed.mjs --demo\"",
+    "seed:backfill": "npm run seed:build && node dist-seed/seed.mjs --backfill",
     "test:watch": "vitest",
     "lint": "oxlint",
     "preview": "vite preview"
@@ -30,6 +33,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "firebase-admin": "^14.5.0",
     "firebase-tools": "^15.34.2",
     "jsdom": "^30.1.2",
     "oxlint": "^1.81.0",
