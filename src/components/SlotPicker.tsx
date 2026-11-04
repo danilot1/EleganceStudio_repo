@@ -1,5 +1,5 @@
 import { Sunset, Sunrise } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { countAvailableSlots, buildDaySlots, isDayFull } from '../lib/availability'
 import {
   addDaysISO,
@@ -41,6 +41,12 @@ export function SlotPicker({
 }) {
   const { appointments } = useAppState()
   const [selectedDate, setSelectedDate] = useState(value?.dateISO ?? startDateISO)
+
+  // Quando o calendário da gestão abre o formulário já em um horário de outro dia,
+  // a faixa de dias precisa acompanhar a escolha.
+  useEffect(() => {
+    if (value?.dateISO) setSelectedDate(value.dateISO)
+  }, [value?.dateISO])
 
   const dateOptions = useMemo(
     () => Array.from({ length: days }, (_, index) => addDaysISO(startDateISO, index)),

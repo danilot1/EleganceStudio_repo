@@ -12,6 +12,9 @@ import { addDaysISO, daysBetween, todayISO } from './dates'
 
 const STORAGE_KEY = 'elegance-studio:v1'
 
+/** Chave usada para sincronizar abas abertas no mesmo navegador. */
+export const DATABASE_STORAGE_KEY = STORAGE_KEY
+
 export interface Database {
   version: 1
   /** Data em que a demonstração foi gerada, usada para deslocar os dados de exemplo. */
@@ -425,4 +428,19 @@ export function resetDatabase(): Database {
   const db = createSeededDatabase()
   saveDatabase(db)
   return db
+}
+
+/**
+ * Avisa quando outra aba gravou na agenda.
+ *
+ * O evento `storage` só chega às outras abas — é justamente o que faz uma reserva feita
+ * no celular (ou em outra aba) aparecer como ocupada aqui, em vez de continuar livre.
+ */
+export function subscribeToDatabase(onChange: (db: Database) => void): () => void {
+  const handler = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY || !event.newValue) return
+    onChange(loadDatabase())
+  }
+  window.addEventListener('storage', handler)
+  return () => window.removeEventListener('storage', handler)
 }

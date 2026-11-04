@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { App } from './App'
+import { addDaysISO, fromISODate, fullDateLabel, todayISO } from './lib/dates'
 
 // `globals` está desligado no Vitest, então a limpeza do DOM precisa ser explícita.
 afterEach(cleanup)
@@ -13,6 +14,17 @@ function renderRoute(path: string) {
       <App />
     </MemoryRouter>,
   )
+}
+
+/** Dia útil futuro: domingo é fechado e sábado fecha às 14h. */
+function futureWeekday(days: number): string {
+  let iso = addDaysISO(todayISO(), days)
+  while ([0, 6].includes(fromISODate(iso).getDay())) iso = addDaysISO(iso, 1)
+  return iso
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 /**
@@ -138,8 +150,40 @@ describe('renderização das telas', () => {
     loginAsAdmin()
     renderRoute('/painel')
     expect(await screen.findByText('Painel Executivo')).toBeTruthy()
-    expect(screen.getByText('Linha do Tempo')).toBeTruthy()
-    expect(screen.getByText(/horários livres hoje/)).toBeTruthy()
+    expect(screen.getByText('Agenda do dia')).toBeTruthy()
+    expect(screen.getByText(/vagas livres/)).toBeTruthy()
+  })
+
+  it('calendário da gestão mostra vagas do mês e agenda em um bloco livre', async () => {
+    const user = userEvent.setup()
+    loginAsAdmin()
+    renderRoute('/painel')
+
+    const calendar = await screen.findByLabelText('Calendário da agenda')
+    const dayCells = () =>
+      within(calendar).getAllByRole('button', { name: /— (Fechado|Lotado|\d+ vagas)$/ })
+
+    // Grade completa: 6 semanas de domingo a sábado.
+    expect(dayCells()).toHaveLength(42)
+
+    await user.click(within(calendar).getByRole('button', { name: 'Próximo período' }))
+    expect(dayCells()).toHaveLength(42)
+    await user.click(within(calendar).getByRole('button', { name: 'Hoje' }))
+
+    // Abre um dia útil futuro e usa a visão diária para agendar em um bloco verde.
+    const target = futureWeekday(7)
+    await user.click(
+      within(calendar).getByRole('button', {
+        name: new RegExp(escapeRegExp(fullDateLabel(target))),
+      }),
+    )
+    await user.click(within(calendar).getByRole('button', { name: 'Dia' }))
+
+    const freeSlots = within(calendar).getAllByRole('button', { name: /— livre$/ })
+    expect(freeSlots.length).toBeGreaterThan(0)
+    await user.click(freeSlots[0]!)
+
+    expect(await screen.findByText('Novo atendimento de balcão')).toBeTruthy()
   })
 
   it('rota inexistente cai na página 404', async () => {
@@ -209,8 +253,7 @@ describe('gestão do atendimento', () => {
     loginAsAdmin()
     renderRoute('/painel')
 
-    const timeline = await screen.findByText('Linha do Tempo')
-    expect(timeline).toBeTruthy()
+    expect(await screen.findByText('Agenda do dia')).toBeTruthy()
 
     const startButtons = screen.getAllByRole('button', { name: /Iniciar Atendimento/i })
     expect(startButtons.length).toBeGreaterThan(0)
@@ -227,7 +270,7 @@ describe('gestão do atendimento', () => {
     loginAsAdmin()
     renderRoute('/painel')
 
-    expect(await screen.findByText(/Qualidade da agenda/)).toBeTruthy()
+    expect(await screen.findByText(/Qualidade do dia/)).toBeTruthy()
     // 1 falta em 4 atendimentos concluídos + 1 falta = 20% (dados de exemplo do dia).
     expect(screen.getByText('20% no-show')).toBeTruthy()
 

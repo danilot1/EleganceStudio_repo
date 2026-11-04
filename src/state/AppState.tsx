@@ -13,10 +13,10 @@ import {
   SERVICE_GROUPS,
   SERVICES,
 } from '../data/catalog'
-import { hasConflict } from '../lib/availability'
+import { fitsWorkWindow, hasConflict } from '../lib/availability'
 import { isValidEmail, onlyDigits } from '../lib/format'
 import { canRegisterNoShow } from '../lib/noShow'
-import { loadDatabase, resetDatabase, saveDatabase, type Database } from '../lib/storage'
+import { loadDatabase, resetDatabase, saveDatabase, subscribeToDatabase, type Database } from '../lib/storage'
 import type {
   Appointment,
   AppointmentStatus,
@@ -60,6 +60,8 @@ interface AppStateValue {
   groups: typeof SERVICE_GROUPS
   categories: typeof CATEGORIES
   appointments: Appointment[]
+  /** Contas cadastradas — usadas pela gestão para consultar os dados das clientes. */
+  users: User[]
   session: Session | null
   login: (email: string, password: string, remember?: boolean) => ActionResult
   signUp: (input: SignUpInput) => ActionResult
@@ -95,6 +97,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveDatabase(db)
   }, [db])
+
+  // Duas abas abertas (a cliente agendando e a gestão olhando a agenda) compartilham o
+  // localStorage. Sem este ouvinte, um horário reservado em uma aba continuaria livre na
+  // outra e o conflito só apareceria ao confirmar. O estado de uma aba nova é aplicado
+  // apenas quando o conteúdo realmente muda, para não haver gravação em pingue-pongue.
+  useEffect(
+    () =>
+      subscribeToDatabase((next) => {
+        setDb((current) =>
+          JSON.stringify(current) === JSON.stringify(next) ? current : next,
+        )
+      }),
+    [],
+  )
 
   /**
    * "Lembrar-me neste dispositivo" decide onde a sessão é guardada:
@@ -196,6 +212,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const createAppointment = useCallback(
     (input: NewAppointmentInput): ActionResult & { appointment?: Appointment } => {
       if (
+        !fitsWorkWindow({
+          dateISO: input.dateISO,
+          startMin: input.startMin,
+          durationMin: input.durationMin,
+        })
+      ) {
+        return {
+          ok: false,
+          error: 'Este serviço não cabe no expediente do dia. Escolha outro horário.',
+        }
+      }
+
+      if (
         hasConflict({
           dateISO: input.dateISO,
           startMin: input.startMin,
@@ -282,6 +311,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const target = db.appointments.find((item) => item.id === id)
       if (!target) return { ok: false, error: 'Agendamento não encontrado.' }
       if (
+        !fitsWorkWindow({
+          dateISO,
+          startMin,
+          durationMin: target.durationMin,
+        })
+      ) {
+        return { ok: false, error: 'Este serviço não cabe no expediente do dia escolhido.' }
+      }
+      if (
         hasConflict({
           dateISO,
           startMin,
@@ -316,6 +354,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       groups: SERVICE_GROUPS,
       categories: CATEGORIES,
       appointments: db.appointments,
+      users: db.users,
       session,
       login,
       signUp,
@@ -330,6 +369,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }),
     [
       db.appointments,
+      db.users,
       session,
       login,
       signUp,

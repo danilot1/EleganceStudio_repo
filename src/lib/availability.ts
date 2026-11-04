@@ -8,7 +8,7 @@ export interface WorkWindow {
 }
 
 /** Intervalo reservado para almoço — nenhum serviço começa dentro dele. */
-const LUNCH: WorkWindow = { startMin: 12 * 60, endMin: 13 * 60 }
+export const LUNCH_WINDOW: WorkWindow = { startMin: 12 * 60, endMin: 13 * 60 }
 
 /** Grade mínima entre horários oferecidos. */
 export const SLOT_STEP_MIN = 30
@@ -70,7 +70,7 @@ export function buildDaySlots(options: {
     const lastStart = window.endMin - durationMin
     for (let start = window.startMin; start <= lastStart; start += SLOT_STEP_MIN) {
       const end = start + durationMin
-      const hitsLunch = overlaps(start, end, LUNCH.startMin, LUNCH.endMin)
+      const hitsLunch = overlaps(start, end, LUNCH_WINDOW.startMin, LUNCH_WINDOW.endMin)
       const hitsBooking = busy.some((block) => overlaps(start, end, block.startMin, block.endMin))
       const alreadyPast = isPast(dateISO, start)
       slots.push({
@@ -103,6 +103,21 @@ export function isDayFull(options: {
   const slots = buildDaySlots(options)
   if (slots.length === 0) return true // fechado
   return slots.every((slot) => !slot.available)
+}
+
+/**
+ * Verdadeiro quando o atendimento inteiro cabe no expediente do dia.
+ * Evita encaixe que começa 18:30 com um serviço de 90 min e terminaria depois do fechamento.
+ */
+export function fitsWorkWindow(options: {
+  dateISO: string
+  startMin: number
+  durationMin: number
+}): boolean {
+  const endMin = options.startMin + options.durationMin
+  return workWindows(options.dateISO).some(
+    (window) => options.startMin >= window.startMin && endMin <= window.endMin,
+  )
 }
 
 /** Verdadeiro quando o profissional já tem atendimento no mesmo intervalo. */

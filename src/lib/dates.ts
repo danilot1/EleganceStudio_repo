@@ -156,3 +156,77 @@ export function sortAppointments(a: Appointment, b: Appointment): number {
   if (a.dateISO !== b.dateISO) return a.dateISO < b.dateISO ? -1 : 1
   return a.startMin - b.startMin
 }
+
+// ------------------------------------------------------------------ calendário
+
+/** Primeiro dia do mês de `iso`. */
+export function startOfMonthISO(iso: string): string {
+  const date = fromISODate(iso)
+  date.setDate(1)
+  return toISODate(date)
+}
+
+/** Último dia do mês de `iso`. */
+export function endOfMonthISO(iso: string): string {
+  const date = fromISODate(iso)
+  date.setDate(1)
+  date.setMonth(date.getMonth() + 1)
+  date.setDate(0)
+  return toISODate(date)
+}
+
+/**
+ * Soma meses preservando o dia quando ele existe no mês de destino
+ * (31 de janeiro + 1 mês = 28/29 de fevereiro, e não 3 de março).
+ */
+export function addMonthsISO(iso: string, months: number): string {
+  const date = fromISODate(iso)
+  const day = date.getDate()
+  date.setDate(1)
+  date.setMonth(date.getMonth() + months)
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+  date.setDate(Math.min(day, lastDay))
+  return toISODate(date)
+}
+
+/** Domingo da semana que contém `iso` — o calendário da agenda começa no domingo. */
+export function startOfSundayWeekISO(iso: string): string {
+  const date = fromISODate(iso)
+  date.setDate(date.getDate() - date.getDay())
+  return toISODate(date)
+}
+
+/** Os 7 dias da semana (domingo a sábado) que contém `iso`. */
+export function weekDaysISO(iso: string): string[] {
+  const start = startOfSundayWeekISO(iso)
+  return Array.from({ length: 7 }, (_, index) => addDaysISO(start, index))
+}
+
+/**
+ * Grade do mês: 6 semanas de domingo a sábado (42 dias), incluindo os dias das
+ * bordas do mês anterior e do seguinte para a grade nunca "pular" colunas.
+ */
+export function monthGridISO(iso: string): string[] {
+  const start = startOfSundayWeekISO(startOfMonthISO(iso))
+  return Array.from({ length: 42 }, (_, index) => addDaysISO(start, index))
+}
+
+export function isSameMonth(a: string, b: string): boolean {
+  return a.slice(0, 7) === b.slice(0, 7)
+}
+
+/** 'Out' — abreviação de mês usada em rótulos compactos. */
+export function monthShortLabel(iso: string): string {
+  return monthLabel(iso).slice(0, 3)
+}
+
+/** Intervalo exibido no cabeçalho da semana: '18 – 24 de Outubro'. */
+export function weekRangeLabel(iso: string): string {
+  const days = weekDaysISO(iso)
+  const first = days[0]!
+  const last = days[6]!
+  if (first.slice(0, 7) === last.slice(0, 7)) {
+    return `${dayOfMonth(first)} – ${dayOfMonth(last)} de ${monthLabel(last)}`
+  }
+  return `${dayOfMonth(first)} de ${monthShortLabel(first)} – ${dayOfMonth(last)} de ${monthShortLabel(last)}`
+}

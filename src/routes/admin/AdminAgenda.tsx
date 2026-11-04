@@ -4,6 +4,8 @@ import {
   CalendarClock,
   CalendarDays,
   CircleSlash,
+  Mail,
+  Phone,
   Plus,
   TrendingUp,
   UserX,
@@ -11,22 +13,24 @@ import {
   X,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { AgendaCalendar, type AgendaView } from '../../components/AgendaCalendar'
 import { RequireRole } from '../../components/guards'
-import { TimelineCard } from '../../components/TimelineCard'
 import { SlotPicker } from '../../components/SlotPicker'
-import { DemoNotice, Stat, cx } from '../../components/ui'
+import { TimelineCard } from '../../components/TimelineCard'
+import { Avatar, DemoNotice, Stat, cx } from '../../components/ui'
 import { SERVICE_GROUPS } from '../../data/catalog'
-import { buildDaySlots, workWindows } from '../../lib/availability'
-import { addDaysISO, startOfWeekISO, todayISO, weekdayDateLabel } from '../../lib/dates'
+import { appointmentsOfDay, occupancyOf, summarizeDay } from '../../lib/agenda'
+import { fullDateLabel, numericDayMonth, todayISO, weekdayDateLabel } from '../../lib/dates'
 import { formatBRL } from '../../lib/format'
 import { noShowStats } from '../../lib/noShow'
 import { useAppState } from '../../state/AppState'
 
-type PanelTab = 'agenda' | 'servicos' | 'profissionais'
+type PanelTab = 'agenda' | 'servicos' | 'clientes' | 'profissionais'
 
 const PANEL_TABS: Array<{ id: PanelTab; label: string }> = [
   { id: 'agenda', label: 'Agenda' },
   { id: 'servicos', label: 'Serviços' },
+  { id: 'clientes', label: 'Clientes' },
   { id: 'profissionais', label: 'Profissionais' },
 ]
 
@@ -40,11 +44,14 @@ export function AdminAgenda() {
 }
 
 function AdminPanel() {
-  const { appointments, professionals, services, createAppointment } = useAppState()
+  const { appointments, professionals, services, users, createAppointment } = useAppState()
   const today = todayISO()
+
   const [tab, setTab] = useState<PanelTab>('agenda')
-  const [period, setPeriod] = useState<'hoje' | 'semana'>('hoje')
+  const [view, setView] = useState<AgendaView>('mes')
+  const [selectedDateISO, setSelectedDateISO] = useState(today)
   const [professionalFilter, setProfessionalFilter] = useState<string | null>(null)
+
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState('')
   const [newServiceId, setNewServiceId] = useState(services[0]?.id ?? '')
@@ -52,70 +59,82 @@ function AdminPanel() {
   const [newSlot, setNewSlot] = useState<{ dateISO: string; startMin: number } | null>(null)
   const [newError, setNewError] = useState<string | null>(null)
 
-  const weekStart = startOfWeekISO(today)
-  const weekEnd = addDaysISO(weekStart, 6)
-
-  const todayAppointments = useMemo(
-    () => appointments.filter((appointment) => appointment.dateISO === today),
-    [appointments, today],
+  // O filtro por profissional vale para o calendário, os números e a lista do dia.
+  const visibleProfessionals = useMemo(
+    () =>
+      professionalFilter
+        ? professionals.filter((professional) => professional.id === professionalFilter)
+        : professionals,
+    [professionals, professionalFilter],
   )
 
-  const periodAppointments = useMemo(() => {
-    const list =
-      period === 'hoje'
-        ? todayAppointments
-        : appointments.filter(
-            (appointment) => appointment.dateISO >= weekStart && appointment.dateISO <= weekEnd,
-          )
-    return list
-      .filter(
-        (appointment) =>
-          !professionalFilter || appointment.professionalId === professionalFilter,
-      )
-      .sort((a, b) =>
-        a.dateISO === b.dateISO ? a.startMin - b.startMin : a.dateISO < b.dateISO ? -1 : 1,
-      )
-  }, [appointments, period, todayAppointments, weekStart, weekEnd, professionalFilter])
+  const dayAppointments = useMemo(
+    () => appointmentsOfDay({ dateISO: selectedDateISO, appointments }),
+    [appointments, selectedDateISO],
+  )
 
-  // ---------------------------------------------------------------- indicadores (calculados)
-  const active = todayAppointments.filter((appointment) => appointment.status !== 'cancelado')
+  const filteredDay = useMemo(
+    () =>
+      professionalFilter
+        ? dayAppointments.filter(
+            (appointment) => appointment.professionalId === professionalFilter,
+          )
+        : dayAppointments,
+    [dayAppointments, professionalFilter],
+  )
+
+  const summary = useMemo(
+    () =>
+      summarizeDay({
+        dateISO: selectedDateISO,
+        professionalIds: professionals.map((professional) => professional.id),
+        appointments,
+      }),
+    [selectedDateISO, professionals, appointments],
+  )
+
+  // ---------------------------------------------------------------- indicadores do dia
+  const active = dayAppointments.filter(
+    (appointment) => appointment.status !== 'cancelado' && appointment.status !== 'faltou',
+  )
   const revenue = active.reduce((total, appointment) => total + appointment.price, 0)
   const paidCount = active.filter((appointment) => appointment.payment === 'pago').length
-
-  const bookedMinutes = active.reduce((total, appointment) => total + appointment.durationMin, 0)
-  const capacityMinutes = professionals.reduce(
-    (total) =>
-      total + workWindows(today).reduce((sum, window) => sum + (window.endMin - window.startMin), 0),
-    0,
-  )
-  const occupancy = capacityMinutes > 0 ? Math.round((bookedMinutes / capacityMinutes) * 100) : 0
-
-  const cancelledToday = todayAppointments.filter(
+  const cancelled = dayAppointments.filter(
     (appointment) => appointment.status === 'cancelado',
   ).length
+  const occupancy = occupancyOf(summary)
 
-  // No-show: faltas ÷ atendimentos com desfecho (concluídos + faltas) do período selecionado.
-  const noShow = noShowStats(
-    periodAppointments,
-    period === 'hoje' ? today : weekStart,
-    period === 'hoje' ? today : weekEnd,
-  )
-
-  const freeSlots = professionals.reduce((total, professional) => {
-    const slots = buildDaySlots({
-      dateISO: today,
-      durationMin: 30,
-      professionalId: professional.id,
-      appointments,
-    })
-    return total + slots.filter((slot) => slot.available).length
-  }, 0)
-
-  const professionalsWithBookings = professionals.filter((professional) =>
-    periodAppointments.some((appointment) => appointment.professionalId === professional.id),
-  )
+  // No-show: faltas ÷ atendimentos com desfecho no dia selecionado.
+  const noShow = noShowStats(dayAppointments, selectedDateISO, selectedDateISO)
 
   const selectedNewService = services.find((service) => service.id === newServiceId)
+
+  // ---------------------------------------------------------------- clientes (aba)
+  const clientRows = useMemo(
+    () =>
+      users.map((user) => {
+        const mine = appointments.filter((appointment) => appointment.clientUserId === user.id)
+        const completed = mine.filter((appointment) => appointment.status === 'concluido')
+        const upcoming = mine
+          .filter(
+            (appointment) =>
+              appointment.dateISO >= today &&
+              !['concluido', 'cancelado', 'faltou'].includes(appointment.status),
+          )
+          .sort((a, b) => (a.dateISO === b.dateISO ? a.startMin - b.startMin : a.dateISO < b.dateISO ? -1 : 1))
+        return {
+          user,
+          total: mine.length,
+          completed: completed.length,
+          spent: completed.reduce((total, appointment) => total + appointment.price, 0),
+          lastISO: completed.map((appointment) => appointment.dateISO).sort().at(-1),
+          next: upcoming[0],
+        }
+      }),
+    [users, appointments, today],
+  )
+
+  const guestAppointments = appointments.filter((appointment) => !appointment.clientUserId).length
 
   return (
     <div className="space-y-4">
@@ -133,9 +152,13 @@ function AdminPanel() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-[26px] leading-tight text-ink">Painel Executivo</h1>
-            <p className="text-[12px] text-ink-muted">Visão em tempo real do salão</p>
+            <p className="text-[12px] text-ink-muted">Agenda, equipe e clientes do estúdio</p>
           </div>
-          <button type="button" className="btn-primary btn-sm shrink-0" onClick={() => setShowNew((value) => !value)}>
+          <button
+            type="button"
+            className="btn-primary btn-sm shrink-0"
+            onClick={() => setShowNew((value) => !value)}
+          >
             <Plus className="size-3.5" aria-hidden />
             Novo
           </button>
@@ -229,7 +252,11 @@ function AdminPanel() {
             />
           ) : null}
 
-          {newError ? <p className="text-[12px] text-danger">{newError}</p> : null}
+          {newError ? (
+            <p role="alert" className="text-[12px] font-medium text-danger">
+              {newError}
+            </p>
+          ) : null}
 
           <button
             type="button"
@@ -256,6 +283,8 @@ function AdminPanel() {
                 setNewError(result.error ?? 'Não foi possível criar o atendimento.')
                 return
               }
+              // Leva a agenda para o dia do novo atendimento, para ele aparecer na hora.
+              setSelectedDateISO(newSlot.dateISO)
               setNewError(null)
               setNewName('')
               setNewSlot(null)
@@ -266,7 +295,8 @@ function AdminPanel() {
           </button>
           <DemoNotice>
             O atendimento é criado apenas neste navegador e entra como “Confirmado”, como faria a
-            recepção ao atender por telefone.
+            recepção ao atender por telefone. Ele passa a ocupar o horário na agenda e no
+            agendamento da cliente imediatamente.
           </DemoNotice>
         </section>
       ) : null}
@@ -277,9 +307,9 @@ function AdminPanel() {
             <Stat
               icon={CalendarClock}
               label="Atendimentos"
-              value={String(active.length)}
-              hint="hoje"
-              progress={capacityMinutes ? (bookedMinutes / capacityMinutes) * 100 : 0}
+              value={String(summary.appointments)}
+              hint={numericDayMonth(selectedDateISO)}
+              progress={occupancy}
             />
             <Stat
               icon={TrendingUp}
@@ -296,17 +326,110 @@ function AdminPanel() {
             />
             <Stat
               icon={CircleSlash}
-              label="Cancelados"
-              value={`${cancelledToday}`}
-              hint="hoje"
+              label="Vagas Livres"
+              value={String(summary.free)}
+              hint={summary.closed ? 'fechado' : 'blocos de 30 min'}
             />
+          </section>
+
+          <AgendaCalendar
+            appointments={appointments}
+            professionals={visibleProfessionals}
+            selectedDateISO={selectedDateISO}
+            onSelectDate={setSelectedDateISO}
+            view={view}
+            onViewChange={setView}
+            onPickSlot={(professionalId, startMin) => {
+              setNewProfessionalId(professionalId)
+              const suggestion = services.find(
+                (service) => service.professionalId === professionalId,
+              )
+              if (suggestion) setNewServiceId(suggestion.id)
+              setNewSlot({ dateISO: selectedDateISO, startMin })
+              setNewError(null)
+              setShowNew(true)
+            }}
+          />
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-medium text-ink-muted">
+            <span className="flex items-center gap-1">
+              <span className="size-2 rounded-full bg-success" aria-hidden />
+              Disponível
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="size-2 rounded-full bg-danger" aria-hidden />
+              Ocupado
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="size-2 rounded-full bg-line-strong" aria-hidden />
+              Fechado
+            </span>
+            <span className="ml-auto">Dom fechado • almoço 12h–13h</span>
+          </div>
+
+          <section className="space-y-2">
+            <div className="flex items-end justify-between gap-2">
+              <div>
+                <p className="eyebrow">Filtrar por profissional</p>
+                <p className="text-[11px] text-ink-muted">
+                  {cancelled} cancelado{cancelled === 1 ? '' : 's'} neste dia
+                </p>
+              </div>
+            </div>
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+              <button
+                type="button"
+                className={cx('chip', !professionalFilter && 'chip-active')}
+                onClick={() => setProfessionalFilter(null)}
+              >
+                Todas
+                <span
+                  className={cx(
+                    'text-[10px]',
+                    !professionalFilter ? 'text-white/80' : 'text-ink-muted',
+                  )}
+                >
+                  {dayAppointments.length}
+                </span>
+              </button>
+              {professionals.map((professional) => {
+                const count = dayAppointments.filter(
+                  (appointment) => appointment.professionalId === professional.id,
+                ).length
+                return (
+                  <button
+                    key={professional.id}
+                    type="button"
+                    className={cx(
+                      'chip',
+                      professionalFilter === professional.id && 'chip-active',
+                    )}
+                    onClick={() =>
+                      setProfessionalFilter((current) =>
+                        current === professional.id ? null : professional.id,
+                      )
+                    }
+                  >
+                    {professional.name.split(' ')[0]}
+                    <span
+                      className={cx(
+                        'text-[10px]',
+                        professionalFilter === professional.id ? 'text-white/80' : 'text-ink-muted',
+                      )}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </section>
 
           <section className="card space-y-2 p-3.5">
             <div className="flex items-center justify-between gap-2">
               <p className="eyebrow flex items-center gap-1.5">
                 <UserX className="size-3.5 text-warn" aria-hidden />
-                Qualidade da agenda • {period === 'hoje' ? 'hoje' : 'semana'}
+                Qualidade do dia • {numericDayMonth(selectedDateISO)}
               </p>
               <span className="badge bg-warn-tint text-warn">{noShow.rate}% no-show</span>
             </div>
@@ -329,72 +452,35 @@ function AdminPanel() {
             </p>
           </section>
 
-          <section className="space-y-2">
-            <div className="flex gap-2 rounded-full border border-line bg-surface p-1">
-              {(['hoje', 'semana'] as const).map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  aria-pressed={period === item}
-                  className={cx(
-                    'flex-1 rounded-full px-3 py-2 text-[12px] font-semibold capitalize transition-colors',
-                    period === item ? 'bg-gold text-white' : 'text-ink-soft hover:bg-surface-2',
-                  )}
-                  onClick={() => setPeriod(item)}
-                >
-                  {item === 'hoje' ? `Hoje (${numericToday(today)})` : 'Semana'}
-                </button>
-              ))}
-            </div>
-
-            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-              <button
-                type="button"
-                className={cx('chip', !professionalFilter && 'chip-active')}
-                onClick={() => setProfessionalFilter(null)}
-              >
-                Todas
-                <span className={cx('text-[10px]', !professionalFilter ? 'text-white/80' : 'text-ink-muted')}>
-                  {professionalsWithBookings.length}
-                </span>
-              </button>
-              {professionalsWithBookings.map((professional) => (
-                <button
-                  key={professional.id}
-                  type="button"
-                  className={cx('chip', professionalFilter === professional.id && 'chip-active')}
-                  onClick={() => setProfessionalFilter(professional.id)}
-                >
-                  {professional.name}
-                </button>
-              ))}
-            </div>
-          </section>
-
           <section className="space-y-3">
             <div className="flex items-end justify-between gap-2">
-              <h2 className="text-[19px] text-ink">Linha do Tempo</h2>
+              <div>
+                <h2 className="text-[19px] leading-tight text-ink">Agenda do dia</h2>
+                <p className="text-[11px] text-ink-muted">{fullDateLabel(selectedDateISO)}</p>
+              </div>
               <p className="text-[11px] font-medium text-ink-muted">
-                {freeSlots} horários livres hoje
+                {summary.free} vagas livres
               </p>
             </div>
 
-            {periodAppointments.length === 0 ? (
-              <p className="rounded-[14px] border border-line bg-surface-2 p-4 text-[13px] text-ink-muted">
-                Nenhum atendimento encontrado para este filtro.
+            {filteredDay.length === 0 ? (
+              <p className="rounded-[14px] border border-line bg-surface-2 p-4 text-[13px] leading-relaxed text-ink-muted">
+                Nenhum atendimento neste dia para este filtro. Escolha a visão{' '}
+                <span className="font-semibold text-ink-soft">Dia</span> no calendário e toque em
+                um bloco verde para agendar, ou use o botão “Novo”.
               </p>
             ) : (
               <div className="grid gap-3 lg:grid-cols-2">
-                {periodAppointments.map((appointment) => (
+                {filteredDay.map((appointment) => (
                   <TimelineCard key={appointment.id} appointment={appointment} />
                 ))}
               </div>
             )}
 
             <DemoNotice>
-              Indicadores calculados a partir dos atendimentos registrados neste navegador —
-              por isso os números mudam quando você cancela, conclui ou reagenda. No protótipo
-              eles eram valores fixos na tela.
+              Os indicadores e o calendário são calculados a partir dos atendimentos registrados
+              neste navegador — por isso os números mudam quando você agenda, cancela, conclui,
+              falta ou reagenda.
             </DemoNotice>
           </section>
         </>
@@ -403,6 +489,10 @@ function AdminPanel() {
       {tab === 'servicos' ? (
         <section className="space-y-3">
           <h2 className="text-[19px] text-ink">Serviços cadastrados</h2>
+          <p className="text-[12px] leading-relaxed text-ink-muted">
+            A duração definida aqui é a que reserva o horário na agenda: um serviço de 60 minutos
+            ocupa dois blocos de 30 minutos na visão Dia.
+          </p>
           <div className="space-y-2">
             {SERVICE_GROUPS.map((group) => {
               const items = services.filter((service) => service.groupId === group.id)
@@ -432,10 +522,86 @@ function AdminPanel() {
             })}
           </div>
           <DemoNotice>
-            A aba de Serviços aparece cortada no print enviado, então mostramos apenas a leitura do
-            catálogo (duração e valor). Editar serviço pela gestão não foi implementado porque o
-            protótipo não define esse fluxo. Valores sem confirmação no protótipo estão marcados em
-            STATUS.md.
+            A edição de duração e preço pela gestão ainda não está implementada: o catálogo é
+            fixo em <span className="font-semibold text-ink-soft">src/data/catalog.ts</span>. A
+            agenda já respeita a duração de cada serviço ao reservar os blocos.
+          </DemoNotice>
+        </section>
+      ) : null}
+
+      {tab === 'clientes' ? (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-[19px] text-ink">Clientes</h2>
+            <p className="text-[12px] text-ink-muted">
+              Contatos e histórico de quem tem conta no app.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {clientRows.map(({ user, total, completed, spent, lastISO, next }) => (
+              <article key={user.id} className="card space-y-2">
+                <div className="flex items-start gap-3">
+                  <Avatar name={user.name} imageKey="clientAvatar" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] font-semibold text-ink">{user.name}</p>
+                    <span
+                      className={cx(
+                        'badge',
+                        user.role === 'admin'
+                          ? 'bg-gold-tint text-gold'
+                          : 'bg-surface-2 text-ink-soft',
+                      )}
+                    >
+                      {user.role === 'admin' ? 'Gestão' : 'Cliente'}
+                    </span>
+                  </div>
+                  <p className="shrink-0 text-right text-[11px] text-ink-muted">
+                    {total} agendamento{total === 1 ? '' : 's'}
+                    <br />
+                    {completed} concluído{completed === 1 ? '' : 's'}
+                  </p>
+                </div>
+
+                <div className="space-y-1 rounded-[12px] bg-surface-2 p-2.5 text-[11px] text-ink-soft">
+                  <p className="flex items-center gap-1.5 truncate">
+                    <Mail className="size-3.5 shrink-0 text-gold" aria-hidden />
+                    {user.email}
+                  </p>
+                  <p className="flex items-center gap-1.5">
+                    <Phone className="size-3.5 shrink-0 text-gold" aria-hidden />
+                    {user.phone}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-muted">
+                  <span>
+                    {pastLabel(lastISO)}
+                    {spent > 0 ? ` • ${formatBRL(spent)} em atendimentos` : ''}
+                  </span>
+                  {next ? (
+                    <span className="font-medium text-gold">
+                      Próximo: {numericDayMonth(next.dateISO)}
+                    </span>
+                  ) : (
+                    <span>Sem próximo agendamento</span>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {guestAppointments > 0 ? (
+            <p className="rounded-[14px] border border-line bg-surface-2 p-3 text-[12px] leading-relaxed text-ink-muted">
+              {guestAppointments} atendimento{guestAppointments === 1 ? '' : 's'} foi
+              {guestAppointments === 1 ? '' : 'ram'} feito sem conta no app (balcão ou convidada),
+              então não aparece{guestAppointments === 1 ? '' : 'm'} na lista acima.
+            </p>
+          ) : null}
+
+          <DemoNotice>
+            Os dados vêm do cadastro local do navegador. A senha nunca é exibida aqui — e, por ser
+            um protótipo, ela ainda é guardada sem hash (ver STATUS.md).
           </DemoNotice>
         </section>
       ) : null}
@@ -445,10 +611,11 @@ function AdminPanel() {
           <h2 className="text-[19px] text-ink">Equipe do estúdio</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {professionals.map((professional) => {
-              const count = todayAppointments.filter(
+              const count = dayAppointments.filter(
                 (appointment) =>
                   appointment.professionalId === professional.id &&
-                  appointment.status !== 'cancelado',
+                  appointment.status !== 'cancelado' &&
+                  appointment.status !== 'faltou',
               ).length
               return (
                 <div key={professional.id} className="card space-y-2">
@@ -470,7 +637,8 @@ function AdminPanel() {
                   </p>
                   <p className="flex items-center gap-1.5 text-[11px] text-ink-muted">
                     <Users className="size-3.5" aria-hidden />
-                    {count} atendimentos hoje
+                    {count} atendimento{count === 1 ? '' : 's'} em{' '}
+                    {numericDayMonth(selectedDateISO)}
                     {professional.chair ? ` • ${professional.chair}` : ''}
                   </p>
                 </div>
@@ -487,7 +655,8 @@ function AdminPanel() {
   )
 }
 
-function numericToday(iso: string): string {
-  const [, month, day] = iso.split('-')
-  return `${day}/${month}`
+/** Texto auxiliar da última visita; separado para o card ficar legível. */
+function pastLabel(lastISO?: string): string {
+  if (!lastISO) return 'Sem atendimento concluído'
+  return `Última visita: ${numericDayMonth(lastISO)}`
 }
