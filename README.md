@@ -25,6 +25,9 @@ Cobre os dois lados do sistema:
 >
 > Para publicar no Firebase (regras, índice, primeira gestão e checklist), siga o
 > **[DEPLOY.md](./DEPLOY.md).**
+>
+> O raciocínio por trás das decisões está no segundo cérebro de notas:
+> **[brain/MOC.md](./brain/MOC.md)** (Markdown com `[[wikilinks]]`, abre como cofre no Obsidian).
 
 ---
 

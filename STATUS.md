@@ -1,7 +1,9 @@
 # STATUS — o que é real, o que é demonstração e o que falta
 
-Documento de transparência do protótipo. Ele existe para o projeto **não** parecer mais pronto
-do que está: o front-end está completo e funcional e a camada de dados já está isolada, mas o
+Documento de transparência do protótipo. O raciocínio por trás das decisões está no segundo
+cérebro de notas: **[brain/MOC.md](./brain/MOC.md)**.
+
+Ele existe para o projeto **não** parecer mais pronto do que está: o front-end está completo e funcional e a camada de dados já está isolada, mas o
 **back-end Firebase ainda não foi implementado** (fases 2–6 do plano).
 
 ## 1. Funciona de verdade (código, com regra implementada)
@@ -29,7 +31,7 @@ do que está: o front-end está completo e funcional e a camada de dados já est
 | Novo atendimento pela gestão | `src/routes/admin/AdminAgenda.tsx` | botão "+ Novo" com escolha de serviço, profissional e horário |
 | Camada de dados trocável | `src/lib/backend/` | contrato único (`Backend`) com implementação local e operações assíncronas; o adaptador Firebase entra pelo mesmo contrato, sem tocar em nenhuma tela |
 | Gestão de serviços e horários | `src/routes/admin/AdminAgenda.tsx`, `src/lib/backend/local.ts` | a gestão ajusta duração, preço e ativa/desativa cada serviço; a nova duração passa a reservar os blocos da agenda e a montar os horários do agendamento |
-| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 63 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda, no-show e documento de agenda) |
+| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 67 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda, no-show e documento de agenda) |
 | Verificação das regras do Firestore | `tests/rules.test.ts` | 17 testes no emulador (`npm run test:rules`): dono do agendamento, convidada, autopromoção a gestão e catálogo restrito |
 | Seed e backfill da agenda | `scripts/seed.ts`, `src/lib/agendaDoc.ts` | `npm run seed:demo` recria contas, agendamentos e documentos de agenda no emulador; `npm run seed:backfill` reconstrói `agenda/{profissional}__{dia}` dos agendamentos existentes (inclusive os anteriores à fase 3) e preserva blocos órfãos; os dois conferem o resultado relendo do Firestore |
 
