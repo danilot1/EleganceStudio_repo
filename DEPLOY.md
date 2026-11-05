@@ -58,6 +58,17 @@ Para publicar só as regras:
 npx firebase deploy --only firestore:rules
 ```
 
+Para conferir a configuração e os alvos sem enviar nada:
+
+```bash
+npm run deploy:rules -- --dry-run
+```
+
+O `--dry-run` valida `firebase.json`, as regras e o arquivo de índices e para antes do envio. Ele
+ainda exige `firebase login`: sem credenciais o erro é exatamente
+`Failed to authenticate, have you run firebase login?` — é assim que se confirma que o problema
+é a conta, e não a configuração.
+
 Reversão: o console mantém o histórico de regras (**Firestore → Regras → histórico**); publicar
 uma versão anterior restaura o comportamento na hora, sem redeploy do aplicativo.
 
