@@ -137,12 +137,13 @@ extensão oficial *Trigger Email from Firestore*. Três avisos são montados:
 
 | Aviso | Quando | Quem dispara |
 | --- | --- | --- |
-| Pedido recebido | ao concluir o agendamento (com conta) | tela de revisão |
+| Pedido recebido | ao concluir o agendamento (e-mail informado ou da conta) | tela de revisão |
 | Horário confirmado | ao confirmar no painel | cartão do atendimento |
 | Lembrete de véspera | véspera do atendimento | abertura do painel |
 
-Sem o serviço de e-mail configurado, os pedidos ficam registrados (no modo local aparecem em
-**Painel → Agenda → Avisos por e-mail**) e nenhuma tela finge que a mensagem saiu. Para ativar o
+O endereço vem do agendamento (a convidada informa na etapa de revisão) e, quando existe conta,
+do cadastro. Sem o serviço de e-mail configurado, os pedidos ficam registrados (no modo local
+aparecem em **Painel → Agenda → Avisos por e-mail**) e nenhuma tela finge que a mensagem saiu. Para ativar o
 envio, siga a seção "Avisos por e-mail" do **[DEPLOY.md](./DEPLOY.md)**. O lembrete usa um id
 derivado do atendimento, então abrir o painel várias vezes não duplica aviso.
 

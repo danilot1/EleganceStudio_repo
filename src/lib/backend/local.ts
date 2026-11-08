@@ -170,6 +170,7 @@ export function createLocalBackend(): Backend {
         id: `apt-${Date.now()}`,
         clientName: input.clientName.trim(),
         clientUserId: session?.role === 'cliente' ? session.userId : undefined,
+        clientEmail: input.clientEmail?.trim() || undefined,
         serviceId: input.serviceId,
         title: input.title,
         professionalId: input.professionalId,
@@ -295,15 +296,16 @@ export function createLocalBackend(): Backend {
 
       for (const appointment of db.appointments) {
         if (!isReminderDue(appointment, nowISO)) continue
-        // Sem conta não há e-mail: a convidada só recebe o comprovante na tela.
+        // O e-mail vem do próprio agendamento (convidada) ou do cadastro (cliente).
         const user = db.users.find((item) => item.id === appointment.clientUserId)
-        if (!user?.email) continue
+        const to = appointment.clientEmail ?? user?.email
+        if (!to) continue
 
         const id = reminderMailId(appointment.id)
         if (pending.has(id)) continue
 
         created.push({
-          ...buildMail({ kind: 'lembrete', appointment, to: user.email }),
+          ...buildMail({ kind: 'lembrete', appointment, to }),
           id,
           createdAtISO: nowISO,
         })

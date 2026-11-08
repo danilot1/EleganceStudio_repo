@@ -31,10 +31,10 @@ mensagens** aos clientes — nada disso é código pendente.
 | Novo atendimento pela gestão | `src/routes/admin/AdminAgenda.tsx` | botão "+ Novo" com escolha de serviço, profissional e horário |
 | Camada de dados trocável | `src/lib/backend/` | contrato único (`Backend`) com implementação local e operações assíncronas; o adaptador Firebase entra pelo mesmo contrato, sem tocar em nenhuma tela |
 | Gestão de serviços e horários | `src/routes/admin/AdminAgenda.tsx`, `src/lib/backend/local.ts` | a gestão ajusta duração, preço e ativa/desativa cada serviço; a nova duração passa a reservar os blocos da agenda e a montar os horários do agendamento |
-| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 76 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda, no-show, documento de agenda e avisos por e-mail) |
+| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 78 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda, no-show, documento de agenda e avisos por e-mail) |
 | Verificação das regras do Firestore | `tests/rules.test.ts` | 23 testes no emulador (`npm run test:rules`): dono do agendamento, convidada, autopromoção a gestão, catálogo restrito e pedidos de e-mail |
 | Seed e backfill da agenda | `scripts/seed.ts`, `src/lib/agendaDoc.ts` | `npm run seed:demo` recria contas, agendamentos e documentos de agenda no emulador; `npm run seed:backfill` reconstrói `agenda/{profissional}__{dia}` dos agendamentos existentes (inclusive os anteriores à fase 3) e preserva blocos órfãos; os dois conferem o resultado relendo do Firestore |
-| Avisos por e-mail | `src/lib/notifications.ts`, `src/lib/backend/` | três avisos montados e registrados: pedido recebido, horário confirmado e lembrete de véspera; o pedido segue o formato da coleção `mail/` da extensão oficial de e-mail do Firebase |
+| Avisos por e-mail | `src/lib/notifications.ts`, `src/lib/backend/` | três avisos montados e registrados: pedido recebido, horário confirmado e lembrete de véspera; o destinatário é o e-mail informado no agendamento (inclusive da convidada) ou o do cadastro; o pedido segue o formato da coleção `mail/` da extensão oficial do Firebase |
 | Lembrete de véspera sem duplicar | `src/lib/notifications.ts` | id derivado do atendimento: abrir o painel várias vezes no mesmo dia registra um lembrete por atendimento |
 
 ## 2. Existe, mas é demonstração (NÃO é produção)
@@ -109,7 +109,8 @@ tela em vez de simular sucesso:
     implementadas como leitura (catálogo, contatos e equipe), sem cadastro/edição de serviços
     (o protótipo não define esse fluxo).
 12. **Agendamento sem login é permitido.** Um agendamento feito deslogado não aparece em "Meus
-    Agendamentos", porque não fica vinculado a uma conta — a tela de revisão avisa isso.
+    Agendamentos", porque não fica vinculado a uma conta — a tela de revisão avisa isso. Em troca,
+    essa tela pede um e-mail: é por ele que a convidada recebe confirmação e lembrete.
 13. **Falta não é cancelamento.** A falta é registrada pela gestão depois do horário marcado,
     libera a vaga no app (como o cancelamento) e pode ser revertida. A taxa de no-show usa como
     denominador só os atendimentos com desfecho (concluídos + faltas) do período — agendamentos

@@ -2,7 +2,7 @@
 titulo: Modelo de dados
 tipo: nota-permanente
 tags: [dados, firestore, modelo]
-atualizado: 2026-11-05
+atualizado: 2026-11-09
 ---
 
 # Modelo de dados
@@ -32,6 +32,10 @@ Um atendimento. Guarda serviço, profissional, data/hora, duração, preço, sta
 
 `clientUserId` é o campo que as regras usam para decidir quem lê o quê. Ver
 [[regras-de-seguranca]].
+
+`clientEmail` existe porque a convidada não tem conta: o endereço é informado na etapa de revisão
+e fica no atendimento, não no cadastro. É dele que saem a confirmação e o lembrete quando não há
+`users/{uid}` correspondente. Ver [[notificacoes]].
 
 ## `agenda/{profissional}__{data}`
 

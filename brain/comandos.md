@@ -16,7 +16,7 @@ npm run build        # produção em dist/
 npm run preview      # serve o build
 npm run typecheck    # só tipos
 npm run lint         # oxlint
-npm test             # 76 testes de aplicação
+npm test             # 78 testes de aplicação
 ```
 
 ## Firebase e dados

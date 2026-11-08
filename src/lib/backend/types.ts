@@ -40,6 +40,8 @@ export interface NewAppointmentInput {
   price: number
   clientName: string
   clientNote?: string
+  /** E-mail para os avisos; a convidada informa na etapa de revisão. */
+  clientEmail?: string
   /** Usado pelo encaixe no balcão: entra já confirmado. */
   status?: AppointmentStatus
   origin?: Appointment['origin']

@@ -127,6 +127,7 @@ function toAppointment(id: string, raw: unknown): Appointment {
     id,
     clientName: String(data.clientName ?? ''),
     clientUserId: data.clientUserId ? String(data.clientUserId) : undefined,
+    clientEmail: data.clientEmail ? String(data.clientEmail) : undefined,
     serviceId: String(data.serviceId ?? ''),
     title: data.title ? String(data.title) : undefined,
     professionalId: String(data.professionalId ?? ''),
@@ -352,6 +353,7 @@ export function createFirestoreBackend(): Backend {
         id: appointmentRef.id,
         clientName: input.clientName.trim(),
         clientUserId: session?.role === 'cliente' ? session.userId : undefined,
+        clientEmail: input.clientEmail?.trim() || undefined,
         serviceId: input.serviceId,
         title: input.title,
         professionalId: input.professionalId,
@@ -386,6 +388,7 @@ export function createFirestoreBackend(): Backend {
           transaction.set(appointmentRef, {
             clientName: appointment.clientName,
             clientUserId: appointment.clientUserId ?? null,
+            clientEmail: appointment.clientEmail ?? null,
             serviceId: appointment.serviceId,
             title: appointment.title ?? null,
             professionalId: appointment.professionalId,
@@ -681,10 +684,16 @@ export function createFirestoreBackend(): Backend {
         for (const item of snapshot.docs) {
           const appointment = toAppointment(item.id, item.data())
           if (!isReminderDue(appointment, nowISO)) continue
-          if (!appointment.clientUserId) continue
 
-          const profile = await getDoc(doc(database, USERS, appointment.clientUserId))
-          const email = String(profile.data()?.email ?? '')
+          // O e-mail do agendamento vale para a convidada; o do cadastro, para a cliente.
+          const email =
+            appointment.clientEmail ??
+            (appointment.clientUserId
+              ? String(
+                  (await getDoc(doc(database, USERS, appointment.clientUserId))).data()?.email ??
+                    '',
+                )
+              : '')
           if (!email) continue
 
           const mailRef = doc(database, MAIL, reminderMailId(appointment.id))

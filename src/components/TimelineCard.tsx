@@ -46,8 +46,10 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
   const professional = findProfessional(appointment.professionalId)
   const title = appointment.title ?? service?.name ?? 'Atendimento'
   const cancelled = appointment.status === 'cancelado'
-  // Atendimento de balcão não tem conta, logo não tem e-mail para avisar.
-  const clientEmail = users.find((user) => user.id === appointment.clientUserId)?.email
+  // O e-mail do agendamento cobre a convidada; o do cadastro, a cliente. Balcão sem
+  // endereço nenhum não recebe aviso.
+  const clientEmail =
+    appointment.clientEmail ?? users.find((user) => user.id === appointment.clientUserId)?.email
 
   return (
     <article

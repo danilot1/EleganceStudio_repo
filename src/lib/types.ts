@@ -64,6 +64,11 @@ export interface Appointment {
   id: string
   clientName: string
   clientUserId?: string
+  /**
+   * E-mail informado no agendamento. A convidada não tem conta, mas ainda quer receber os
+   * avisos — por isso o endereço mora no próprio atendimento, não só no cadastro.
+   */
+  clientEmail?: string
   serviceId: string
   professionalId: string
   /**

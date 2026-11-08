@@ -39,9 +39,9 @@ export function BookingConfirmed() {
         <h1 className="text-[24px] leading-tight text-ink">Agendamento registrado</h1>
         <p className="text-[12px] leading-relaxed text-ink-muted">
           Guarde os detalhes abaixo.{' '}
-          {session
-            ? `Registramos um aviso por e-mail para ${session.email}; o estúdio confirma o horário e você recebe outro aviso quando ele for confirmado.`
-            : 'Sem uma conta, não temos e-mail para avisar você — este comprovante é o seu registro.'}
+          {appointment.clientEmail
+            ? `Registramos um aviso por e-mail para ${appointment.clientEmail}; quando o estúdio confirmar o horário, você recebe outro aviso.`
+            : 'Sem e-mail informado, este comprovante é o seu registro do horário.'}
         </p>
         <div className="flex justify-center pt-1">
           <StatusBadge status={appointment.status} />

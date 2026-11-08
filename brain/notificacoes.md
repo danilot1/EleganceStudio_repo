@@ -2,7 +2,7 @@
 titulo: Avisos por e-mail
 tipo: nota-permanente
 tags: [email, notificacoes, firebase]
-atualizado: 2026-11-08
+atualizado: 2026-11-09
 ---
 
 # Avisos por e-mail
@@ -37,9 +37,13 @@ reclamando de spam.
 
 ## Quem recebe — e quem não recebe
 
-Só quem tem conta. O endereço não está no agendamento (o formulário pede apenas o nome); ele vem
-do cadastro da cliente. Agendamento de convidada ou de balcão não tem e-mail, e a tela diz isso em
-vez de prometer um aviso que não existe. Ver [[limites-e-riscos]].
+Duas fontes, nesta ordem: o **e-mail informado no agendamento** e, se não houver, o **do cadastro**.
+A etapa de revisão pede o endereço (opcional, validado) justamente para a convidada — sem conta —
+também receber confirmação e lembrete. Antes disso, só quem tinha conta recebia.
+
+Continua sem aviso o atendimento de balcão criado pela recepção, que não passa por formulário e
+nasce sem endereço. Nesse caso a tela diz que o comprovante é o registro, em vez de prometer uma
+mensagem que não existe. Ver [[limites-e-riscos]] e [[modelo-de-dados]].
 
 ## O lembrete depende de alguém abrir o painel
 

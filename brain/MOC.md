@@ -80,7 +80,7 @@ graph TD
 
 ## Qualidade e limites
 
-- [[testes]] — 76 testes de aplicação e 23 de regra; e o que nenhum deles prova.
+- [[testes]] — 78 testes de aplicação e 23 de regra; e o que nenhum deles prova.
 - [[limites-e-riscos]] — o que é estimativa, demonstração ou pendência.
 - [[design-e-identidade]] — tokens, tipografia e placeholders.
 

@@ -178,6 +178,6 @@ estiver instalada, os pedidos ficam parados — e o painel mostra isso, em vez d
 | Horário confirmado | confirmar o atendimento no painel |
 | Lembrete de véspera | abrir o painel (idempotente: um por atendimento) |
 
-Agendamento sem conta não tem e-mail no cadastro, então não recebe aviso — o comprovante na tela
-diz isso. Lembrete automático sem ninguém abrir o painel exigiria um job agendado (Cloud Function
+A convidada informa o e-mail na etapa de revisão e recebe os mesmos avisos; sem endereço nenhum,
+fica só o comprovante na tela. Lembrete automático sem ninguém abrir o painel exigiria um job agendado (Cloud Function
 com `onSchedule` ou Worker com cron lendo a mesma coleção).

@@ -2,6 +2,7 @@ import { act, cleanup, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { addDaysISO, fromISODate, todayISO } from '../lib/dates'
+import { buildMail } from '../lib/notifications'
 import type { Appointment } from '../lib/types'
 import { AppStateProvider, useAppState } from './AppState'
 
@@ -203,6 +204,63 @@ describe('conflito de horários', () => {
         (item) => item.dateISO === dateISO && item.startMin === startMin,
       ),
     ).toHaveLength(0)
+  })
+})
+
+describe('avisos por e-mail', () => {
+  it('guarda o e-mail informado no agendamento de convidada', async () => {
+    const { result } = renderState()
+
+    let created: Created | undefined
+    await act(async () => {
+      created = await result.current.createAppointment({
+        ...BASE_INPUT,
+        professionalId: 'beatriz',
+        dateISO: weekdayISO(6),
+        startMin: 17 * 60,
+        clientName: 'Convidada Sem Conta',
+        clientEmail: 'convidada@exemplo.com',
+      })
+    })
+
+    expect(created?.ok).toBe(true)
+    expect(created?.appointment?.clientEmail).toBe('convidada@exemplo.com')
+    // O endereço fica no atendimento: é dele que sai o lembrete de véspera.
+    expect(
+      result.current.appointments.find((item) => item.id === created?.appointment?.id)
+        ?.clientEmail,
+    ).toBe('convidada@exemplo.com')
+  })
+
+  it('não registra o mesmo aviso duas vezes quando o pedido tem id fixo', async () => {
+    const { result } = renderState()
+
+    let created: Created | undefined
+    await act(async () => {
+      created = await result.current.createAppointment({
+        ...BASE_INPUT,
+        professionalId: 'beatriz',
+        dateISO: weekdayISO(6),
+        startMin: 17 * 60 + 30,
+        clientName: 'Cliente do Lembrete',
+      })
+    })
+    const appointment = created?.appointment
+    expect(appointment).toBeDefined()
+
+    const draft = buildMail({
+      kind: 'lembrete',
+      appointment: appointment!,
+      to: 'lembrete@exemplo.com',
+    })
+    const id = `lembrete-${appointment!.id}`
+
+    await act(async () => {
+      await result.current.queueMail({ ...draft, id })
+      await result.current.queueMail({ ...draft, id })
+    })
+
+    expect(result.current.outbox.filter((mail) => mail.id === id)).toHaveLength(1)
   })
 })
 

@@ -1,10 +1,10 @@
-import { ArrowRight, CalendarCheck, ShieldCheck, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarCheck, Mail, ShieldCheck, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FieldError, InfoNote } from '../../components/ui'
 import { findProfessional } from '../../data/catalog'
 import { durationLabel } from '../../lib/dates'
-import { formatBRL } from '../../lib/format'
+import { formatBRL, isValidEmail } from '../../lib/format'
 import { buildMail } from '../../lib/notifications'
 import { useAppState } from '../../state/AppState'
 import { useBooking } from '../../state/BookingContext'
@@ -16,6 +16,7 @@ export function StepReview() {
   const { createAppointment, queueMail, session, services } = useAppState()
   const navigate = useNavigate()
   const [name, setName] = useState(draft.clientName ?? session?.name ?? '')
+  const [email, setEmail] = useState(session?.email ?? '')
   const [note, setNote] = useState(draft.clientNote ?? '')
   const [error, setError] = useState<string | null>(null)
 
@@ -79,6 +80,29 @@ export function StepReview() {
         </div>
 
         <div>
+          <label className="field-label" htmlFor="client-email">
+            E-mail para receber os avisos
+          </label>
+          <div className="relative">
+            <Mail
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-muted"
+              aria-hidden
+            />
+            <input
+              id="client-email"
+              type="email"
+              className="field-input pl-10"
+              placeholder="voce@exemplo.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
+          <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
+            Usado só para este horário: pedido recebido, confirmação e lembrete de véspera.
+          </p>
+        </div>
+
+        <div>
           <label className="field-label" htmlFor="client-note">
             Observações (opcional)
           </label>
@@ -124,6 +148,11 @@ export function StepReview() {
             setError('Informe o nome de quem vai ser atendida.')
             return
           }
+          const cleanEmail = email.trim()
+          if (cleanEmail && !isValidEmail(cleanEmail)) {
+            setError('Confira o e-mail: parece incompleto.')
+            return
+          }
           const result = await createAppointment({
             serviceId: service!.id,
             professionalId: professional!.id,
@@ -133,20 +162,18 @@ export function StepReview() {
             price: service!.price,
             clientName: name,
             clientNote: note,
+            clientEmail: cleanEmail || undefined,
           })
           if (!result.ok || !result.appointment) {
             setError(result.error ?? 'Não foi possível concluir o agendamento.')
             return
           }
-          // O aviso por e-mail só existe quando há conta: é dela que vem o endereço.
-          // Sem conta, a cliente segue com o comprovante na tela — e a tela diz isso.
-          if (session?.email) {
+          // O e-mail vem do próprio agendamento (informado acima) e, se houver conta, do
+          // cadastro. Sem nenhum dos dois, fica só o comprovante na tela.
+          const to = result.appointment.clientEmail ?? session?.email
+          if (to) {
             await queueMail(
-              buildMail({
-                kind: 'confirmacao',
-                appointment: result.appointment,
-                to: session.email,
-              }),
+              buildMail({ kind: 'confirmacao', appointment: result.appointment, to }),
             )
           }
 

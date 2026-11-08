@@ -9,7 +9,7 @@ atualizado: 2026-11-05
 
 Duas suítes com naturezas diferentes, de propósito.
 
-## Aplicação — 76 testes, 7 arquivos
+## Aplicação — 78 testes, 7 arquivos
 
 `npm test` (Vitest + Testing Library + jsdom).
 
@@ -45,5 +45,5 @@ Esses testes são os únicos que provam que `firestore.rules` faz o que promete 
 - **Login real no Firebase**: o fluxo de Auth não é exercitado pelos testes; o emulador é usado
   para dados e regras.
 
-Estado na última execução: `npm test` 76/76, `npm run test:rules` 23/23, `typecheck` e `lint`
+Estado na última execução: `npm test` 78/78, `npm run test:rules` 23/23, `typecheck` e `lint`
 limpos.
