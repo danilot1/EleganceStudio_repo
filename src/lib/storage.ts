@@ -1,4 +1,5 @@
 import type { Appointment, User } from './types'
+import type { OutgoingMail } from './notifications'
 import { addDaysISO, daysBetween, todayISO } from './dates'
 
 /**
@@ -36,6 +37,11 @@ export interface Database {
   appointments: Appointment[]
   /** Vazio quando a gestão nunca editou o catálogo. */
   serviceOverrides: ServiceOverrides
+  /**
+   * Avisos por e-mail registrados na demonstração. Não há envio real sem o serviço
+   * configurado: o pedido fica aqui e isso é dito na tela, em vez de fingir que saiu.
+   */
+  outbox?: OutgoingMail[]
 }
 
 function seedUsers(): User[] {

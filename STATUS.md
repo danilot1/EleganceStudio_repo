@@ -1,10 +1,10 @@
 # STATUS — o que é real, o que é demonstração e o que falta
 
 Documento de transparência do protótipo. O raciocínio por trás das decisões está no segundo
-cérebro de notas: **[brain/MOC.md](./brain/MOC.md)**.
-
-Ele existe para o projeto **não** parecer mais pronto do que está: o front-end está completo e funcional e a camada de dados já está isolada, mas o
-**back-end Firebase ainda não foi implementado** (fases 2–6 do plano).
+cérebro de notas: **[brain/MOC.md](./brain/MOC.md)**.Ele existe para o projeto **não** parecer mais pronto do que está: o front-end está completo, a
+camada de dados está isolada e o back-end Firebase está implementado (fases 2–5) e preparado para
+publicar (fase 6). O que realmente falta é a **publicação no projeto do estúdio** e o **envio de
+mensagens** aos clientes — nada disso é código pendente.
 
 ## 1. Funciona de verdade (código, com regra implementada)
 
@@ -31,9 +31,11 @@ Ele existe para o projeto **não** parecer mais pronto do que está: o front-end
 | Novo atendimento pela gestão | `src/routes/admin/AdminAgenda.tsx` | botão "+ Novo" com escolha de serviço, profissional e horário |
 | Camada de dados trocável | `src/lib/backend/` | contrato único (`Backend`) com implementação local e operações assíncronas; o adaptador Firebase entra pelo mesmo contrato, sem tocar em nenhuma tela |
 | Gestão de serviços e horários | `src/routes/admin/AdminAgenda.tsx`, `src/lib/backend/local.ts` | a gestão ajusta duração, preço e ativa/desativa cada serviço; a nova duração passa a reservar os blocos da agenda e a montar os horários do agendamento |
-| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 67 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda, no-show e documento de agenda) |
-| Verificação das regras do Firestore | `tests/rules.test.ts` | 17 testes no emulador (`npm run test:rules`): dono do agendamento, convidada, autopromoção a gestão e catálogo restrito |
+| Verificação automática | `src/App.test.tsx`, `src/state/AppState.test.tsx`, `src/lib/*.test.ts` | 76 testes (telas, fluxo de agendamento, gestão, calendário, conflito de horários, autenticação, agenda, no-show, documento de agenda e avisos por e-mail) |
+| Verificação das regras do Firestore | `tests/rules.test.ts` | 23 testes no emulador (`npm run test:rules`): dono do agendamento, convidada, autopromoção a gestão, catálogo restrito e pedidos de e-mail |
 | Seed e backfill da agenda | `scripts/seed.ts`, `src/lib/agendaDoc.ts` | `npm run seed:demo` recria contas, agendamentos e documentos de agenda no emulador; `npm run seed:backfill` reconstrói `agenda/{profissional}__{dia}` dos agendamentos existentes (inclusive os anteriores à fase 3) e preserva blocos órfãos; os dois conferem o resultado relendo do Firestore |
+| Avisos por e-mail | `src/lib/notifications.ts`, `src/lib/backend/` | três avisos montados e registrados: pedido recebido, horário confirmado e lembrete de véspera; o pedido segue o formato da coleção `mail/` da extensão oficial de e-mail do Firebase |
+| Lembrete de véspera sem duplicar | `src/lib/notifications.ts` | id derivado do atendimento: abrir o painel várias vezes no mesmo dia registra um lembrete por atendimento |
 
 ## 2. Existe, mas é demonstração (NÃO é produção)
 
@@ -56,12 +58,15 @@ tela em vez de simular sucesso:
 
 - **Login com Apple e Google** — exige OAuth/OpenID com um provedor de identidade.
 - **Recuperação de senha por e-mail ou WhatsApp** — exige servidor de e-mail e API do WhatsApp.
-- **Lembretes e notificações** — exigem serviço de mensagens e jobs agendados (o sino mostra o aviso).
+- **Lembretes e notificações** — o aplicativo registra o pedido de e-mail (coleção `mail/`),
+  mas o envio real depende de instalar o serviço de e-mail no projeto (ver `DEPLOY.md`).
 - **"Falar Conosco" / telefone da profissional** — nenhum telefone, WhatsApp ou e-mail do
   estúdio foi informado no projeto.
 - **Pagamento online** — o protótipo prevê pagamento no local; nenhum gateway foi integrado.
-- **Confirmação do atendimento pelo estúdio** — hoje o agendamento nasce como "Aguardando
-  Confirmação" e ninguém é avisado, porque não há envio de mensagens.
+- **Confirmação do atendimento pelo estúdio** — a gestão confirma no painel e isso gera o aviso
+  por e-mail; sem o serviço de e-mail instalado, o pedido fica registrado e não sai.
+- **Lembrete automático sem ninguém abrir o app** — o lembrete é gerado quando a gestão abre o
+  painel; um job agendado exigiria Cloud Functions ou um Worker com cron.
 
 ## 4. Decisões tomadas e divergências em relação ao protótipo
 
@@ -121,7 +126,12 @@ tela em vez de simular sucesso:
 
 ## 5. Próximos passos sugeridos
 
-1. Escolher o back-end (linguagem e banco) e mover `src/lib/storage.ts` para uma API real.
-2. Implementar autenticação com hash de senha e autorização por perfil no servidor.
-3. Integrar um serviço de mensagens para confirmação e lembretes.
-4. Substituir preços estimados pelos valores oficiais e incluir as fotos do estúdio.
+1. Publicar as regras e o índice no projeto do estúdio e criar a primeira conta de gestão
+   (`DEPLOY.md`). É o único passo que exige a conta do dono do projeto.
+2. Verificar em dois aparelhos reais, ao mesmo tempo, no mesmo horário — a única prova que o
+   emulador não dá.
+3. Instalar o serviço de e-mail no projeto (extensão + provedor): os pedidos de aviso já são
+   registrados em `mail/`, mas só saem depois desse passo — ver `DEPLOY.md`.
+4. Endurecer a escrita em `agenda/`: mover a transação para uma Cloud Function (plano Blaze),
+   para que as regras possam recusar escrita direta do cliente.
+5. Substituir preços estimados pelos valores oficiais e incluir as fotos do estúdio.

@@ -65,7 +65,7 @@ npm run dev
 ```
 
 Nenhuma tela muda: as telas conversam apenas com `useAppState()`, e `src/lib/backend/` decide
-qual implementação responde — `local` hoje, `firebase` nas próximas fases do plano.
+qual implementação responde — `local` sem `.env` e `firestore` com as variáveis preenchidas.
 
 | Fase | Situação |
 | --- | --- |
@@ -73,7 +73,7 @@ qual implementação responde — `local` hoje, `firebase` nas próximas fases d
 | 1. Camada de dados isolada (`src/lib/backend`) | concluída |
 | 2. Autenticação real (Firebase Auth) | concluída — login, cadastro, recuperação por e-mail e "Lembrar-me" |
 | 3. Agenda transacional no Firestore | concluída — `agenda/{profissional}__{dia}` serializa a reserva |
-| 4. Security Rules + testes de regra | concluída — 17 testes no emulador (`npm run test:rules`) |
+| 4. Security Rules + testes de regra | concluída — 23 testes no emulador (`npm run test:rules`) |
 | 5. Seed e backfill da agenda | concluída — `scripts/seed.ts` grava a demonstração e reconstrói `agenda/` a partir dos agendamentos, com verificação no emulador |
 | 6. Publicação das rules e do índice | pronta para publicar — `npm run deploy:rules` e o passo a passo em `DEPLOY.md`; a publicação em si exige o projeto Firebase do dono |
 
@@ -129,6 +129,22 @@ O calendário fica em `/painel` (entre com `gestao@elegance.com`):
 O horário reservado sai da disponibilidade do cliente no mesmo instante, porque as duas telas
 leem os mesmos dados (`src/lib/agenda.ts` e `src/lib/availability.ts`). A grade é responsiva:
 no celular o mês usa sete colunas compactas e a visão Dia rola na horizontal, sem cortar texto.
+
+## Avisos por e-mail
+
+O aplicativo **não envia e-mail: ele registra o pedido** na coleção `mail/`, no formato da
+extensão oficial *Trigger Email from Firestore*. Três avisos são montados:
+
+| Aviso | Quando | Quem dispara |
+| --- | --- | --- |
+| Pedido recebido | ao concluir o agendamento (com conta) | tela de revisão |
+| Horário confirmado | ao confirmar no painel | cartão do atendimento |
+| Lembrete de véspera | véspera do atendimento | abertura do painel |
+
+Sem o serviço de e-mail configurado, os pedidos ficam registrados (no modo local aparecem em
+**Painel → Agenda → Avisos por e-mail**) e nenhuma tela finge que a mensagem saiu. Para ativar o
+envio, siga a seção "Avisos por e-mail" do **[DEPLOY.md](./DEPLOY.md)**. O lembrete usa um id
+derivado do atendimento, então abrir o painel várias vezes não duplica aviso.
 
 ## Como trocar as cores, fontes e fotos
 

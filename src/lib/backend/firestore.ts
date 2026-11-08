@@ -35,6 +35,12 @@ import { fitsWorkWindow, hasConflict } from '../availability'
 import { addDaysISO, todayISO } from '../dates'
 import { isValidEmail, onlyDigits } from '../format'
 import { firebaseAuth, firebaseDb } from '../firebase'
+import {
+  buildMail,
+  isReminderDue,
+  mailDocument,
+  reminderMailId,
+} from '../notifications'
 import { canRegisterNoShow } from '../noShow'
 import type { Database, ServiceOverrides } from '../storage'
 import {
@@ -68,6 +74,8 @@ const USERS = 'users'
 const APPOINTMENTS = 'appointments'
 const AGENDA = 'agenda'
 const SERVICE_OVERRIDES = 'serviceOverrides'
+/** Coleção lida pela extensão oficial de e-mail (Trigger Email from Firestore). */
+const MAIL = 'mail'
 
 /** Janela de histórico carregada no painel (dias para trás). */
 const HISTORY_DAYS = 90
@@ -643,6 +651,59 @@ export function createFirestoreBackend(): Backend {
       } catch (error) {
         return { ok: false, error: describeError(error) }
       }
+    },
+
+    async queueMail(draft) {
+      try {
+        const database = firebaseDb()
+        // Id determinístico (lembrete) sobrescreve o mesmo documento; sem id, a coleção
+        // gera um novo pedido.
+        const target = draft.id
+          ? doc(database, MAIL, draft.id)
+          : doc(collection(database, MAIL))
+        await setDoc(target, mailDocument(draft, new Date().toISOString()))
+        return { ok: true }
+      } catch (error) {
+        return { ok: false, error: describeError(error) }
+      }
+    },
+
+    async queueReminders(nowISO = new Date().toISOString()) {
+      const database = firebaseDb()
+      const tomorrow = addDaysISO(nowISO.slice(0, 10), 1)
+      let created = 0
+
+      try {
+        const snapshot = await getDocs(
+          query(collection(database, APPOINTMENTS), where('dateISO', '==', tomorrow)),
+        )
+
+        for (const item of snapshot.docs) {
+          const appointment = toAppointment(item.id, item.data())
+          if (!isReminderDue(appointment, nowISO)) continue
+          if (!appointment.clientUserId) continue
+
+          const profile = await getDoc(doc(database, USERS, appointment.clientUserId))
+          const email = String(profile.data()?.email ?? '')
+          if (!email) continue
+
+          const mailRef = doc(database, MAIL, reminderMailId(appointment.id))
+          // O lembrete é um só por atendimento: já pedido, não pede de novo.
+          if ((await getDoc(mailRef)).exists()) continue
+
+          await setDoc(
+            mailRef,
+            mailDocument(buildMail({ kind: 'lembrete', appointment, to: email }), nowISO),
+          )
+          created += 1
+        }
+      } catch (error) {
+        // Sem permissão (não é gestão) ou sem rede: o painel segue funcionando.
+        console.error('Falha ao registrar os lembretes de véspera', error)
+        return 0
+      }
+
+      return created
     },
 
     async resetDemo() {

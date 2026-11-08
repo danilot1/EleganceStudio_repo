@@ -1,4 +1,5 @@
 import type { Database } from '../storage'
+import type { MailDraft } from '../notifications'
 import type {
   Appointment,
   AppointmentStatus,
@@ -84,6 +85,20 @@ export interface Backend {
   rescheduleAppointment(id: string, dateISO: string, startMin: number): Promise<ActionResult>
   /** Ajusta duração, preço ou disponibilidade de um serviço no catálogo. */
   updateService(id: string, patch: ServicePatch): Promise<ActionResult>
+  /**
+   * Registra um aviso por e-mail para uma cliente.
+   *
+   * No Firebase vira um documento em `mail/` (formato da extensão oficial de e-mail);
+   * no modo local fica na caixa de saída da demonstração. Nenhum backend envia e-mail
+   * sozinho — isso é papel do serviço de e-mail configurado no projeto.
+   */
+  queueMail(draft: MailDraft): Promise<ActionResult>
+  /**
+   * Registra os lembretes de véspera que ainda não existem.
+   * Devolve quantos foram criados; é idempotente (o id do lembrete é derivado do
+   * atendimento), então chamar de novo no mesmo dia não duplica aviso.
+   */
+  queueReminders(nowISO?: string): Promise<number>
   resetDemo(): Promise<void>
 }
 

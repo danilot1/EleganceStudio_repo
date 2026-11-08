@@ -173,6 +173,49 @@ describe('perfis', () => {
   })
 })
 
+describe('avisos por e-mail', () => {
+  const MAIL = {
+    to: 'cliente1@exemplo.com',
+    message: {
+      subject: 'Pedido recebido',
+      text: 'Seu horário foi registrado.',
+      html: '<p>Seu horário foi registrado.</p>',
+    },
+    kind: 'confirmacao',
+    appointmentId: 'apt-1',
+    createdAtISO: '2026-11-05T12:00:00.000Z',
+    delivery: { state: 'PENDING' },
+  }
+
+  it('a cliente registra o aviso do próprio agendamento', async () => {
+    await assertSucceeds(setDoc(doc(asClient(), 'mail', 'aviso-1'), MAIL))
+  })
+
+  it('convidada também registra o pedido (agenda sem conta)', async () => {
+    await assertSucceeds(setDoc(doc(asGuest(), 'mail', 'aviso-2'), MAIL))
+  })
+
+  it('recusa pedido com destinatário inválido', async () => {
+    await assertFails(
+      setDoc(doc(asClient(), 'mail', 'aviso-3'), { ...MAIL, to: 'não-é-email' }),
+    )
+  })
+
+  it('recusa pedido que já nasce fora do estado pendente', async () => {
+    await assertFails(
+      setDoc(doc(asClient(), 'mail', 'aviso-4'), { ...MAIL, delivery: { state: 'SUCCESS' } }),
+    )
+  })
+
+  it('a cliente não lê a caixa de saída', async () => {
+    await assertFails(getDoc(doc(asClient(), 'mail', 'aviso-1')))
+  })
+
+  it('a gestão acompanha o resultado do envio', async () => {
+    await assertSucceeds(getDoc(doc(asAdmin(), 'mail', 'aviso-1')))
+  })
+})
+
 describe('catálogo e agenda', () => {
   it('a cliente não altera o catálogo', async () => {
     await assertFails(

@@ -17,7 +17,7 @@ mal fechada contamina a seguinte.
 | 1 | Isolar a camada de dados: contrato `Backend` com implementação local | `e5c01fd` |
 | 2 | Autenticação real com Firebase Auth + adaptador Firestore | `d0c0061` |
 | 3 | Reserva transacional no documento de agenda | `84fbfdc` |
-| 4 | Security Rules + 17 testes no emulador | `5b7cdf7` |
+| 4 | Security Rules + testes no emulador | `5b7cdf7` |
 | 5 | Seed da demonstração e backfill da agenda | `535be2f` |
 | 6 | Publicação das regras e do índice composto | `825f970`, `5531e9a` |
 
@@ -32,7 +32,8 @@ mal fechada contamina a seguinte.
 - **Fase 3 — agenda transacional.** A reserva lê e grava um documento por profissional/dia dentro
   de uma transação, então duas pessoas no mesmo horário não conseguem as duas. Ver
   [[documento-de-agenda]].
-- **Fase 4 — regras.** `firestore.rules` com negação por padrão e 17 testes no emulador. Ver
+- **Fase 4 — regras.** `firestore.rules` com negação por padrão e testes no emulador (17 na
+  época; hoje 23, com os avisos por e-mail). Ver
   [[regras-de-seguranca]] e [[testes]].
 - **Fase 5 — dados.** `scripts/seed.ts` recria a demonstração no emulador e reconstrói os
   documentos de agenda de agendamentos antigos. Ver [[scripts-de-dados]].

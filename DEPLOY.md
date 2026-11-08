@@ -138,9 +138,46 @@ Marque cada item olhando o comportamento real, não só o console do Firebase:
   conseguem validar sobreposição de horário. O documento guarda apenas identificador, horário e
   status — nenhum dado pessoal. Um cliente malicioso poderia corromper a agenda; corrigir exige
   mover a reserva para uma Cloud Function ou para um servidor (plano Blaze).
-- **Sem envio de e-mail/WhatsApp**: confirmação, lembretes e recuperação de senha por WhatsApp
-  continuam fora de escopo (a recuperação por e-mail do Firebase Auth funciona).
+- **E-mail registrado, envio não**: os pedidos de aviso ficam parados em `mail/` até a extensão de
+  e-mail ser instalada (seção abaixo). WhatsApp continua fora de escopo (a recuperação de senha
+  por e-mail do Firebase Auth funciona).
 - **`resetDemo` é inerte no Firebase**: não existe "recomeçar do zero" pelo aplicativo; a
   demonstração é recarregada pelo script, com `--force`.
 - **Histórico de 90 dias** no painel (`HISTORY_DAYS` em `src/lib/backend/firestore.ts`).
 - **Fotos e preços** seguem os placeholders e estimativas descritos em `STATUS.md`.
+
+## Avisos por e-mail (opcional)
+
+O aplicativo **não envia e-mail: ele grava um pedido** em `mail/`, no formato da extensão oficial
+**Trigger Email from Firestore** (`to` + `message.{subject,text,html}`). Enquanto a extensão não
+estiver instalada, os pedidos ficam parados — e o painel mostra isso, em vez de fingir que saíram.
+
+> A extensão exige o plano **Blaze**. O volume de um estúdio fica dentro do nível gratuito do
+> provedor de e-mail; a cobrança do Google é por uso (centavos por milhares de envios).
+
+1. Crie uma conta em um provedor transacional (Resend, SendGrid ou Postmark) e verifique o domínio
+   do estúdio. Guarde as credenciais SMTP.
+2. Instale a extensão:
+   ```bash
+   npx firebase ext:install firebase/firestore-send-email --project <id-do-projeto>
+   ```
+   - **SMTP connection URI**: `smtps://usuario@smtp.provedor.com:465` — a senha vai no campo de
+     segredo separado e nunca dentro da URI;
+   - **Email documents collection**: `mail`;
+   - **Default FROM address**: o endereço verificado no provedor.
+3. Publique as regras (`npm run deploy:rules`): elas validam o formato do pedido (destinatário,
+   tamanho do assunto e do texto) e deixam a leitura do resultado para a gestão.
+4. Faça um agendamento com uma conta e confira em Firestore → `mail/`: o campo `delivery.state` vai
+   de `PENDING` para `SUCCESS` (ou `ERROR`, com a mensagem do provedor).
+
+### O que sai, e quando
+
+| Aviso | Disparado por |
+| --- | --- |
+| Pedido recebido | concluir o agendamento na tela de revisão (só com conta) |
+| Horário confirmado | confirmar o atendimento no painel |
+| Lembrete de véspera | abrir o painel (idempotente: um por atendimento) |
+
+Agendamento sem conta não tem e-mail no cadastro, então não recebe aviso — o comprovante na tela
+diz isso. Lembrete automático sem ninguém abrir o painel exigiria um job agendado (Cloud Function
+com `onSchedule` ou Worker com cron lendo a mesma coleção).

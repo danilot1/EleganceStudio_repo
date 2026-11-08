@@ -23,6 +23,7 @@ import type {
   ServicePatch,
   SignUpInput,
 } from '../lib/backend/types'
+import type { MailDraft, OutgoingMail } from '../lib/notifications'
 import { loadDatabase, type Database } from '../lib/storage'
 import type {
   Appointment,
@@ -60,6 +61,11 @@ interface AppStateValue {
   registerPayment: (id: string, method: PaymentMethod) => Promise<void>
   rescheduleAppointment: (id: string, dateISO: string, startMin: number) => Promise<ActionResult>
   updateService: (id: string, patch: ServicePatch) => Promise<ActionResult>
+  /** Avisos por e-mail registrados (modo demonstração; vazio no Firebase). */
+  outbox: OutgoingMail[]
+  queueMail: (draft: MailDraft) => Promise<ActionResult>
+  /** Registra os lembretes de véspera que ainda não existem. Devolve quantos criou. */
+  queueReminders: () => Promise<number>
   resetDemo: () => void
 }
 
@@ -221,6 +227,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const queueMail = useCallback(
+    (draft: MailDraft): Promise<ActionResult> => currentBackend().queueMail(draft),
+    [],
+  )
+
+  const queueReminders = useCallback(
+    (): Promise<number> => currentBackend().queueReminders(),
+    [],
+  )
+
   const resetDemo = useCallback(() => {
     persistSession(null)
     void currentBackend().resetDemo()
@@ -246,6 +262,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       registerPayment,
       rescheduleAppointment,
       updateService,
+      outbox: db.outbox ?? [],
+      queueMail,
+      queueReminders,
       resetDemo,
     }),
     [
@@ -264,6 +283,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       registerPayment,
       rescheduleAppointment,
       updateService,
+      db.outbox,
+      queueMail,
+      queueReminders,
       resetDemo,
     ],
   )

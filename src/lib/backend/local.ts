@@ -2,6 +2,7 @@ import { SERVICES } from '../../data/catalog'
 import { fitsWorkWindow, hasConflict } from '../availability'
 import { isValidEmail, onlyDigits } from '../format'
 import { canRegisterNoShow } from '../noShow'
+import { buildMail, isReminderDue, reminderMailId, type OutgoingMail } from '../notifications'
 import { todayISO } from '../dates'
 import { validateServicePatch } from './servicePatch'
 import {
@@ -268,6 +269,50 @@ export function createLocalBackend(): Backend {
 
       write({ ...db, serviceOverrides: { ...db.serviceOverrides, [id]: next } })
       return { ok: true }
+    },
+
+    async queueMail(draft) {
+      const db = read()
+      const outbox = db.outbox ?? []
+      // Pedido com id próprio (lembrete) não pode virar duas mensagens: o toque duplo
+      // ou a reabertura do painel não reenviam o que já saiu.
+      if (draft.id && outbox.some((item) => item.id === draft.id)) return { ok: true }
+
+      const mail: OutgoingMail = {
+        ...draft,
+        id: draft.id ?? `mail-${Date.now()}`,
+        createdAtISO: new Date().toISOString(),
+      }
+      write({ ...db, outbox: [...outbox, mail].slice(-100) })
+      return { ok: true }
+    },
+
+    async queueReminders(nowISO = new Date().toISOString()) {
+      const db = read()
+      const outbox = db.outbox ?? []
+      const pending = new Set(outbox.map((item) => item.id))
+      const created: OutgoingMail[] = []
+
+      for (const appointment of db.appointments) {
+        if (!isReminderDue(appointment, nowISO)) continue
+        // Sem conta não há e-mail: a convidada só recebe o comprovante na tela.
+        const user = db.users.find((item) => item.id === appointment.clientUserId)
+        if (!user?.email) continue
+
+        const id = reminderMailId(appointment.id)
+        if (pending.has(id)) continue
+
+        created.push({
+          ...buildMail({ kind: 'lembrete', appointment, to: user.email }),
+          id,
+          createdAtISO: nowISO,
+        })
+      }
+
+      if (created.length > 0) {
+        write({ ...db, outbox: [...outbox, ...created].slice(-100) })
+      }
+      return created.length
     },
 
     async resetDemo() {

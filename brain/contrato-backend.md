@@ -2,7 +2,7 @@
 titulo: Contrato de dados (local × Firestore)
 tipo: nota-permanente
 tags: [arquitetura, backend, firebase]
-atualizado: 2026-11-05
+atualizado: 2026-11-08
 ---
 
 # Contrato de dados (local × Firestore)
@@ -17,6 +17,10 @@ atualizado: 2026-11-05
 - `index.ts` — escolhe uma das duas conforme o `.env` (`VITE_FIREBASE_*` presentes ou não).
 - `servicePatch.ts` — regra compartilhada de edição de serviço (duração, preço, ativa/inativa),
   para as duas implementações validarem igual.
+
+Avisos por e-mail entram pelo mesmo contrato: `queueMail` e `queueReminders`. No modo local viram
+caixa de saída no navegador; no Firebase viram documentos em `mail/`, que a extensão oficial
+consome. Nenhuma tela sabe a diferença — ver [[notificacoes]].
 
 ## A regra de ouro
 

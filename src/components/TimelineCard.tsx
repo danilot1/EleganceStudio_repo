@@ -15,6 +15,7 @@ import { findProfessional, findService } from '../data/catalog'
 import { durationLabel, minutesToTime, shortDateLabel } from '../lib/dates'
 import { formatBRL } from '../lib/format'
 import { canRegisterNoShow } from '../lib/noShow'
+import { buildMail } from '../lib/notifications'
 import { PAYMENT_LABEL, type Appointment, type PaymentMethod } from '../lib/types'
 import { useAppState } from '../state/AppState'
 import { SlotPicker } from './SlotPicker'
@@ -30,6 +31,8 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
     registerPayment,
     createAppointment,
     rescheduleAppointment,
+    queueMail,
+    users,
   } = useAppState()
   const [showDetails, setShowDetails] = useState(false)
   const [noShowError, setNoShowError] = useState<string | null>(null)
@@ -43,6 +46,8 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
   const professional = findProfessional(appointment.professionalId)
   const title = appointment.title ?? service?.name ?? 'Atendimento'
   const cancelled = appointment.status === 'cancelado'
+  // Atendimento de balcão não tem conta, logo não tem e-mail para avisar.
+  const clientEmail = users.find((user) => user.id === appointment.clientUserId)?.email
 
   return (
     <article
@@ -192,7 +197,15 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
                     key={status}
                     type="button"
                     className={cx('chip', appointment.status === status && 'chip-active')}
-                    onClick={() => void setAppointmentStatus(appointment.id, status)}
+                    onClick={() => {
+                      void setAppointmentStatus(appointment.id, status)
+                      // Confirmar avisa a cliente; reclicar em "Confirmado" não reenvia.
+                      if (status === 'confirmado' && appointment.status !== 'confirmado' && clientEmail) {
+                        void queueMail(
+                          buildMail({ kind: 'confirmado', appointment, to: clientEmail }),
+                        )
+                      }
+                    }}
                   >
                     {status === 'em-atendimento' ? 'Em Atendimento' : status === 'aguardando' ? 'Aguardando' : status === 'concluido' ? 'Concluído' : status === 'cancelado' ? 'Cancelado' : 'Confirmado'}
                   </button>

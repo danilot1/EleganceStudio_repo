@@ -66,5 +66,23 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Pedidos de e-mail (formato da extensão "Trigger Email from Firestore").
+    //
+    // A cliente precisa criar o pedido do próprio agendamento (inclusive sem conta), por
+    // isso a escrita é liberada — mas o formato é validado: destinatário válido, assunto
+    // e corpo de texto limitados, e o pedido nasce PENDING. Quem lê o resultado, altera
+    // o estado ou apaga é a extensão (Admin SDK) e a gestão.
+    match /mail/{mailId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if request.resource.data.to is string
+        && request.resource.data.to.size() <= 200
+        && request.resource.data.to.matches('.+@.+[.].+')
+        && request.resource.data.message.subject is string
+        && request.resource.data.message.subject.size() <= 200
+        && request.resource.data.message.text is string
+        && request.resource.data.message.text.size() <= 4000
+        && request.resource.data.delivery.state == 'PENDING';
+    }
   }
 }

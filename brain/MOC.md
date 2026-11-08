@@ -42,6 +42,9 @@ graph TD
   PUB --> T
   PUB --> L
   DIS --> T
+  DOC --> N[notificacoes]
+  N --> DIS
+  PUB --> N
 
   F --> PUB
   F --> SC
@@ -66,6 +69,7 @@ graph TD
 - [[modelo-de-dados]] — coleções, campos e papéis.
 - [[documento-de-agenda]] — o cadeado que impede duas reservas no mesmo horário.
 - [[disponibilidade-e-no-show]] — grade de 30 min, conflito, falta e taxa de no-show.
+- [[notificacoes]] — o pedido de e-mail, os lembretes de véspera e o que falta para enviar.
 
 ## Segurança e operação
 
@@ -76,7 +80,7 @@ graph TD
 
 ## Qualidade e limites
 
-- [[testes]] — 67 testes de aplicação e 17 de regra; e o que nenhum deles prova.
+- [[testes]] — 76 testes de aplicação e 23 de regra; e o que nenhum deles prova.
 - [[limites-e-riscos]] — o que é estimativa, demonstração ou pendência.
 - [[design-e-identidade]] — tokens, tipografia e placeholders.
 

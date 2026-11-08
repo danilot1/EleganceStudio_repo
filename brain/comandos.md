@@ -16,13 +16,13 @@ npm run build        # produção em dist/
 npm run preview      # serve o build
 npm run typecheck    # só tipos
 npm run lint         # oxlint
-npm test             # 67 testes de aplicação
+npm test             # 76 testes de aplicação
 ```
 
 ## Firebase e dados
 
 ```bash
-npm run test:rules       # 17 testes de regra no emulador (precisa de Java)
+npm run test:rules       # 23 testes de regra no emulador (precisa de Java)
 npm run seed:demo        # demonstração no emulador (apaga e recria)
 npm run seed:backfill    # reconstrói agenda/ a partir dos agendamentos
 npm run deploy:rules     # publica regras + índices (precisa de firebase login)

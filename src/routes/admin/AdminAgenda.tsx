@@ -12,7 +12,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AgendaCalendar, type AgendaView } from '../../components/AgendaCalendar'
 import { RequireRole } from '../../components/guards'
 import { SlotPicker } from '../../components/SlotPicker'
@@ -27,6 +27,12 @@ import type { Service } from '../../lib/types'
 import { useAppState } from '../../state/AppState'
 
 type PanelTab = 'agenda' | 'servicos' | 'clientes' | 'profissionais'
+
+const MAIL_KIND_LABEL = {
+  confirmacao: 'Pedido recebido',
+  confirmado: 'Horário confirmado',
+  lembrete: 'Lembrete de véspera',
+} as const
 
 const PANEL_TABS: Array<{ id: PanelTab; label: string }> = [
   { id: 'agenda', label: 'Agenda' },
@@ -45,8 +51,15 @@ export function AdminAgenda() {
 }
 
 function AdminPanel() {
-  const { appointments, professionals, services, users, createAppointment } = useAppState()
+  const { appointments, professionals, services, users, createAppointment, queueReminders, outbox } =
+    useAppState()
   const today = todayISO()
+
+  // Lembrete de véspera: a gestão abre o painel e os avisos de amanhã são registrados.
+  // É idempotente — o id vem do atendimento —, então abrir de novo não duplica nada.
+  useEffect(() => {
+    void queueReminders()
+  }, [queueReminders])
 
   const [tab, setTab] = useState<PanelTab>('agenda')
   const [view, setView] = useState<AgendaView>('mes')
@@ -452,6 +465,24 @@ function AdminPanel() {
               app. Registre em <span className="font-semibold text-ink-soft">Editar → Registrar falta</span>.
             </p>
           </section>
+
+          {outbox.length > 0 ? (
+            <section className="card space-y-1.5 p-3.5">
+              <p className="eyebrow flex items-center gap-1.5">
+                <Mail className="size-3.5 text-gold" aria-hidden />
+                Avisos por e-mail registrados
+              </p>
+              {outbox.slice(-3).reverse().map((mail) => (
+                <p key={mail.id} className="truncate text-[11px] text-ink-soft">
+                  {MAIL_KIND_LABEL[mail.kind]} • {mail.to}
+                </p>
+              ))}
+              <p className="text-[11px] leading-relaxed text-ink-muted">
+                {outbox.length} pedido{outbox.length === 1 ? '' : 's'} de aviso. O envio depende do
+                serviço de e-mail configurado no projeto — sem ele, o pedido fica registrado aqui.
+              </p>
+            </section>
+          ) : null}
 
           <section className="space-y-3">
             <div className="flex items-end justify-between gap-2">

@@ -17,7 +17,7 @@ o histórico é a fonte, esta nota é a leitura dele.
 | 0/1 | Camada de dados isolada | `e5c01fd` | telas falam só com `useAppState()` |
 | 2 | Firebase Auth + adaptador Firestore | `d0c0061` | login real sem mudar tela |
 | 3 | Reserva transacional | `84fbfdc` | conflito de horário resolvido no documento do dia |
-| 4 | Regras + testes no emulador | `5b7cdf7` | 17 testes de regra passando |
+| 4 | Regras + testes no emulador | `5b7cdf7` | 17 testes de regra passando (hoje 23) |
 | 5 | Seed e backfill | `535be2f` | demonstração recarregável e `agenda/` reconstruível |
 | 6 | Publicação preparada | `825f970` | índice composto, `deploy:rules`, `DEPLOY.md` |
 | 6 | Dry-run documentado | `5531e9a` | bloqueio é a conta, não a configuração |

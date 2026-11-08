@@ -39,8 +39,9 @@ ownsAppointment(data)  data.clientUserId == uid
 
 ## Como isso é provado
 
-17 testes rodando as regras no emulador (`npm run test:rules`), cobrindo dono, convidada,
-autopromoção a gestão e catálogo restrito. Ver [[testes]].
+23 testes rodando as regras no emulador (`npm run test:rules`), cobrindo dono, convidada,
+autopromoção a gestão, catálogo restrito e pedidos de e-mail válidos contra malformados. Ver
+[[testes]].
 
 Publicar: `npm run deploy:rules` — e, antes, `--dry-run` para validar sem enviar. Ver
 [[publicacao-firebase]].

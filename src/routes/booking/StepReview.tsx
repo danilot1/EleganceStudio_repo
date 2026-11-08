@@ -5,6 +5,7 @@ import { FieldError, InfoNote } from '../../components/ui'
 import { findProfessional } from '../../data/catalog'
 import { durationLabel } from '../../lib/dates'
 import { formatBRL } from '../../lib/format'
+import { buildMail } from '../../lib/notifications'
 import { useAppState } from '../../state/AppState'
 import { useBooking } from '../../state/BookingContext'
 import { ProfessionalSummaryCard, ScheduleLine, ServiceSummaryCard } from './BookingSummary'
@@ -12,7 +13,7 @@ import { ProfessionalSummaryCard, ScheduleLine, ServiceSummaryCard } from './Boo
 /** Etapa 4 — Revisão (etapa final antes do comprovante). */
 export function StepReview() {
   const { draft, update } = useBooking()
-  const { createAppointment, session, services } = useAppState()
+  const { createAppointment, queueMail, session, services } = useAppState()
   const navigate = useNavigate()
   const [name, setName] = useState(draft.clientName ?? session?.name ?? '')
   const [note, setNote] = useState(draft.clientNote ?? '')
@@ -137,6 +138,18 @@ export function StepReview() {
             setError(result.error ?? 'Não foi possível concluir o agendamento.')
             return
           }
+          // O aviso por e-mail só existe quando há conta: é dela que vem o endereço.
+          // Sem conta, a cliente segue com o comprovante na tela — e a tela diz isso.
+          if (session?.email) {
+            await queueMail(
+              buildMail({
+                kind: 'confirmacao',
+                appointment: result.appointment,
+                to: session.email,
+              }),
+            )
+          }
+
           // Guarda o nome para os próximos agendamentos. O rascunho só é limpo quando o
           // comprovante aparece: limpar aqui faria a proteção do fluxo devolver o usuário
           // para a etapa 1 antes da confirmação ser exibida.
