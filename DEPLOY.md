@@ -15,6 +15,8 @@ que dá para validar sem elas (regras, índice, seed e backfill) já roda no emu
 - Uma conta Google e um projeto no [console do Firebase](https://console.firebase.google.com/).
 - Java **não** é necessário para publicar; ele só serve ao emulador (`npm run test:rules`,
   `npm run seed:demo`).
+- O repositório já aponta para o projeto **`elegancestudiodb`** (`.firebaserc`). Falta apenas a sua
+  conta autorizar: `npx firebase login`.
 
 ## 2. Criar o projeto e ligar os serviços
 
@@ -43,7 +45,7 @@ gravar no Firestore (`src/lib/backend/firestore.ts`). Sem elas, continua no modo
 
 ```bash
 npx firebase login
-npx firebase use --add        # escolha o projeto; cria .firebaserc
+# o projeto já está vinculado em .firebaserc (elegancestudiodb)
 npm run deploy:rules
 ```
 
