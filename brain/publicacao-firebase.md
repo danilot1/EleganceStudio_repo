@@ -2,7 +2,7 @@
 titulo: Publicação no Firebase
 tipo: nota-permanente
 tags: [deploy, firebase, operacao]
-atualizado: 2026-11-05
+atualizado: 2026-11-09
 ---
 
 # Publicação no Firebase
@@ -17,8 +17,24 @@ porquê.
 | --- | --- | --- |
 | Regras de acesso | `firestore.rules` | é a segurança de verdade do sistema |
 | Índice composto | `firestore.indexes.json` | consulta por `serviceId` + `dateISO` ao desativar serviço |
+| Aplicativo | `dist/` (Hosting) | é o que as pessoas abrem no navegador |
 
-`npm run deploy:rules` publica os dois (`firebase deploy --only firestore:rules,firestore:indexes`).
+`npm run deploy:rules` publica regras e índice; `npm run deploy:app` faz o build e publica o app;
+`npm run deploy:all` faz os três.
+
+## O app publicado precisa de build, não de sorte
+
+O Hosting serve arquivos estáticos, então `firebase.json` ganhou reescrita de SPA: qualquer rota
+cai no `index.html`. Sem ela, recarregar `/painel` devolve 404 — o clássico "funciona navegando,
+quebra ao atualizar a página".
+
+As variáveis `VITE_FIREBASE_*` são lidas no **build**. Publicar de uma máquina sem `.env` gera um
+site que abre em modo local, com cada visitante gravando no próprio navegador — pior que não
+publicar, porque parece certo. Ver [[limites-e-riscos]].
+
+Validado sem conta: `npm run build` + `npx firebase emulators:start --only hosting` serve o
+`dist/` em `127.0.0.1:5000`; raiz e `/painel` respondem 200 e os arquivos de `assets/` saem com
+cache imutável.
 
 ## O índice não é decoração
 
@@ -42,7 +58,7 @@ erro é exatamente `Failed to authenticate, have you run firebase login?` — é
 1. Criar o projeto, habilitar Authentication (e-mail/senha) e Firestore em modo produção.
 2. Registrar o app Web e preencher o `.env` (`VITE_FIREBASE_*`).
 3. `npx firebase login` e `npx firebase use --add`.
-4. `npm run deploy:rules`.
+4. `npm run deploy:rules` e `npm run deploy:app` (ou `npm run deploy:all`).
 5. Criar a primeira conta de gestão pela tela e promover no console — ver
    [[autenticacao-e-papeis]].
 

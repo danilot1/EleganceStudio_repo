@@ -1,6 +1,6 @@
 # DEPLOY — publicar o EleganceStudio no Firebase
 
-Guia da fase 6. Ele cobre **o que publicar** (regras + índice), **o que só o dono do projeto
+Guia da fase 6. Ele cobre **o que publicar** (regras + índice + aplicativo), **o que só o dono do projeto
 pode fazer** (criar o projeto, virar a primeira gestão) e **o que precisa ser comprovado** no
 ambiente publicado, porque uma publicação que "subiu sem erro" não prova que o sistema funciona.
 
@@ -72,6 +72,29 @@ ainda exige `firebase login`: sem credenciais o erro é exatamente
 Reversão: o console mantém o histórico de regras (**Firestore → Regras → histórico**); publicar
 uma versão anterior restaura o comportamento na hora, sem redeploy do aplicativo.
 
+### Publicar o aplicativo (Hosting)
+
+O `firebase.json` já aponta o Hosting para `dist/`, com **reescrita de SPA** (qualquer rota cai no
+`index.html`, necessário para recarregar `/painel` ou `/agendar/revisao` sem 404) e cache longo
+para os arquivos com hash em `assets/`.
+
+```bash
+npm run deploy:app     # build de produção + firebase deploy --only hosting
+npm run deploy:all     # build + regras + índice + hosting
+```
+
+Atenção: as variáveis `VITE_FIREBASE_*` são lidas **no build**, não em tempo de execução. Publique
+de uma máquina com o `.env` preenchido, senão o site sobe em modo local e cada visitante passa a
+gravar no próprio navegador. Para conferir o resultado sem publicar:
+
+```bash
+npm run build
+npx firebase emulators:start --only hosting
+```
+
+O Hosting serve a versão estática em `http://127.0.0.1:5000`; as chamadas de Auth e Firestore
+continuam indo para o projeto configurado no `.env`.
+
 ## 4. Criar a primeira gestão (passo manual, por desenho)
 
 As regras proíbem que alguém se torne gestão sozinho: o cadastro sempre nasce com
@@ -128,6 +151,8 @@ Marque cada item olhando o comportamento real, não só o console do Firebase:
       de conflito.
 - [ ] **Seed/backfill**: `npm run seed:backfill` termina com "todos os agendamentos têm bloco no
       documento do dia".
+- [ ] **Rotas profundas**: abrir `https://<projeto>.web.app/painel` direto pela URL e recarregar
+      a página não devolve 404 — confirma a reescrita de SPA.
 - [ ] **Regras**: `npm run test:rules` continua passando depois de qualquer alteração em
       `firestore.rules` (roda no emulador, sem tocar no projeto real).
 
@@ -174,7 +199,7 @@ estiver instalada, os pedidos ficam parados — e o painel mostra isso, em vez d
 
 | Aviso | Disparado por |
 | --- | --- |
-| Pedido recebido | concluir o agendamento na tela de revisão (só com conta) |
+| Pedido recebido | concluir o agendamento na tela de revisão (e-mail informado ou da conta) |
 | Horário confirmado | confirmar o atendimento no painel |
 | Lembrete de véspera | abrir o painel (idempotente: um por atendimento) |
 
