@@ -1,4 +1,4 @@
-import { SERVICES } from '../../data/catalog'
+import { SERVICES, canPerform } from '../../data/catalog'
 import { fitsWorkWindow, hasConflict } from '../availability'
 import { isValidEmail, onlyDigits } from '../format'
 import { canRegisterNoShow } from '../noShow'
@@ -141,6 +141,10 @@ export function createLocalBackend(): Backend {
     async createAppointment(input, session) {
       const db = read()
 
+      if (!canPerform(input.professionalId, input.serviceId)) {
+        return { ok: false, error: 'Esta profissional não realiza este serviço. Escolha outra.' }
+      }
+
       if (
         !fitsWorkWindow({
           dateISO: input.dateISO,
@@ -177,7 +181,6 @@ export function createLocalBackend(): Backend {
         dateISO: input.dateISO,
         startMin: input.startMin,
         durationMin: input.durationMin,
-        price: input.price,
         status: input.status ?? 'aguardando',
         payment: 'pendente',
         origin: input.origin ?? 'app',

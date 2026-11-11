@@ -15,7 +15,8 @@
  */
 export const IMAGE_SOURCES: Record<string, string | undefined> = {
   homeHero: '/images/home-hero.jpg',
-  homeLounge: '/images/home-lounge.jpg',
+  /** Foto real do estúdio: sala de podologia. */
+  homeLounge: '/images/sala-podologia.jpg',
   /** O mapa ainda é placeholder: não existe imagem de mapa sem serviço de mapas. */
   homeMap: undefined,
   homeServiceHair: '/images/servico-cabelo.jpg',

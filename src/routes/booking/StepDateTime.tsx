@@ -1,10 +1,10 @@
 import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { SlotPicker, type SlotSelection } from '../../components/SlotPicker'
 import { InfoNote } from '../../components/ui'
+import { canPerform } from '../../data/catalog'
 import { minutesToTime, shortDateLabel } from '../../lib/dates'
-import { formatBRL } from '../../lib/format'
 import { useAppState } from '../../state/AppState'
 import { useBooking } from '../../state/BookingContext'
 import { ProfessionalSummaryCard, ServiceSummaryCard } from './BookingSummary'
@@ -24,6 +24,8 @@ export function StepDateTime() {
   )
 
   if (!service || !draft.professionalId) return null
+  // Profissional de outra categoria (o serviço foi trocado depois): volta à escolha.
+  if (!canPerform(draft.professionalId, service.id)) return <Navigate to="/agendar/expert" replace />
 
   return (
     <div className="space-y-4">
@@ -53,10 +55,6 @@ export function StepDateTime() {
                 ? `${shortDateLabel(selection.dateISO).split(',')[0]} ${shortDateLabel(selection.dateISO).split(', ')[1]} às ${minutesToTime(selection.startMin)}`
                 : 'Escolha um horário acima'}
             </p>
-          </div>
-          <div className="text-right">
-            <p className="eyebrow">Valor total</p>
-            <p className="font-display text-[20px] text-ink">{formatBRL(service.price)}</p>
           </div>
         </div>
         <button

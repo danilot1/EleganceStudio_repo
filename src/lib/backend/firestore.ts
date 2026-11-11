@@ -23,7 +23,7 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore'
-import { SERVICES } from '../../data/catalog'
+import { SERVICES, canPerform } from '../../data/catalog'
 import {
   agendaDocId,
   blocksOf,
@@ -134,7 +134,6 @@ function toAppointment(id: string, raw: unknown): Appointment {
     dateISO: String(data.dateISO ?? ''),
     startMin: Number(data.startMin ?? 0),
     durationMin: Number(data.durationMin ?? 0),
-    price: Number(data.price ?? 0),
     status: (data.status as AppointmentStatus) ?? 'aguardando',
     payment: (data.payment as PaymentStatus) ?? 'pendente',
     paymentMethod: (data.paymentMethod as PaymentMethod | null) ?? undefined,
@@ -183,36 +182,60 @@ function dayPayload(professionalId: string, dateISO: string, blocks: unknown) {
 }
 
 export function createFirestoreBackend(): Backend {
+  /**
+   * Agendamentos gravados por esta aba. A convidada não tem permissão de leitura em
+   * `appointments`, então o comprovante dela vem daqui; para quem pode ler, o mesmo
+   * atendimento chega pelo listener e substitui esta cópia.
+   */
+  const createdHere = new Map<string, Appointment>()
+  let refresh = () => {}
+
   return {
     mode: 'firebase',
 
     subscribe(listener) {
       const database = firebaseDb()
       let appointments: Appointment[] = []
+      let busy: Appointment[] = []
       let users: User[] = []
       let overrides: ServiceOverrides = {}
 
       const emit = () => {
+        const readable = new Set(appointments.map((item) => item.id))
         const payload: Database = {
           version: 1,
           // O Firestore não usa a carga de exemplo deslocada por dia: o campo existe
           // apenas porque é o formato comum aos dois backends.
           seedDateISO: todayISO(),
           users,
-          appointments,
+          appointments: [
+            ...appointments,
+            ...[...createdHere.values()].filter((item) => !readable.has(item.id)),
+          ],
+          busy,
           serviceOverrides: overrides,
         }
         listener(payload)
       }
+      refresh = emit
 
-      const from = addDaysISO(todayISO(), -HISTORY_DAYS)
-      const stopAppointments = onSnapshot(
-        query(collection(database, APPOINTMENTS), where('dateISO', '>=', from)),
+      // Ocupação da agenda para montar os horários livres. Vem de `agenda`, que é
+      // pública e só tem horário e status: a cliente não pode ler os atendimentos das
+      // outras, mas precisa saber quais horários já estão tomados.
+      const stopBusy = onSnapshot(
+        query(collection(database, AGENDA), where('dateISO', '>=', todayISO())),
         (snapshot) => {
-          appointments = snapshot.docs.map((item) => toAppointment(item.id, item.data()))
+          busy = snapshot.docs.flatMap((item) => {
+            const data = asRecord(item.data())
+            return busyAppointments(
+              String(data.professionalId ?? ''),
+              String(data.dateISO ?? ''),
+              blocksOf(data),
+            )
+          })
           emit()
         },
-        (error) => console.error('Falha ao ler os agendamentos', error),
+        (error) => console.error('Falha ao ler a ocupação da agenda', error),
       )
 
       const stopOverrides = onSnapshot(
@@ -227,23 +250,67 @@ export function createFirestoreBackend(): Backend {
         (error) => console.error('Falha ao ler os ajustes de serviço', error),
       )
 
-      // A lista de contas é da gestão. Para uma cliente a consulta é negada pelas
-      // regras — o erro é esperado e só significa "sem acesso à lista de clientes".
-      const stopUsers = onSnapshot(
-        collection(database, USERS),
-        (snapshot) => {
-          users = snapshot.docs.map((item) => toUser(item.id, item.data()))
-          emit()
-        },
-        () => {
-          users = []
-        },
-      )
+      // O que cada pessoa pode ler depende de quem está logado, e o Firestore recusa a
+      // consulta inteira quando as regras não conseguem provar que todo resultado é
+      // permitido. Por isso a consulta é refeita a cada troca de sessão:
+      //   - gestão: todos os atendimentos da janela de histórico, e a lista de contas;
+      //   - cliente: só os próprios (filtro por `clientUserId`, que as regras exigem);
+      //   - visitante: nenhum.
+      let stopScoped = () => {}
+      let generation = 0
+      const stopAuth = onAuthStateChanged(firebaseAuth(), (user) => {
+        const current = ++generation
+        stopScoped()
+        stopScoped = () => {}
+        appointments = []
+        users = []
+        emit()
+        if (!user) return
+
+        void sessionFor(user)
+          .catch((): Session | null => null)
+          .then((session) => {
+            if (current !== generation) return
+            const isAdmin = session?.role === 'admin'
+            const scope = isAdmin
+              ? query(
+                  collection(database, APPOINTMENTS),
+                  where('dateISO', '>=', addDaysISO(todayISO(), -HISTORY_DAYS)),
+                )
+              : query(collection(database, APPOINTMENTS), where('clientUserId', '==', user.uid))
+
+            const stopAppointments = onSnapshot(
+              scope,
+              (snapshot) => {
+                appointments = snapshot.docs.map((item) => toAppointment(item.id, item.data()))
+                emit()
+              },
+              (error) => console.error('Falha ao ler os agendamentos', error),
+            )
+            const stopUsers = isAdmin
+              ? onSnapshot(
+                  collection(database, USERS),
+                  (snapshot) => {
+                    users = snapshot.docs.map((item) => toUser(item.id, item.data()))
+                    emit()
+                  },
+                  (error) => console.error('Falha ao ler as contas', error),
+                )
+              : () => {}
+            stopScoped = () => {
+              stopAppointments()
+              stopUsers()
+            }
+          })
+      })
 
       return () => {
-        stopAppointments()
+        generation += 1
+        refresh = () => {}
+        stopAuth()
+        stopScoped()
+        stopBusy()
         stopOverrides()
-        stopUsers()
       }
     },
 
@@ -332,6 +399,10 @@ export function createFirestoreBackend(): Backend {
     },
 
     async createAppointment(input, session) {
+      if (!canPerform(input.professionalId, input.serviceId)) {
+        return { ok: false, error: 'Esta profissional não realiza este serviço. Escolha outra.' }
+      }
+
       if (
         !fitsWorkWindow({
           dateISO: input.dateISO,
@@ -360,7 +431,6 @@ export function createFirestoreBackend(): Backend {
         dateISO: input.dateISO,
         startMin: input.startMin,
         durationMin: input.durationMin,
-        price: input.price,
         status,
         payment: 'pendente',
         origin: input.origin ?? 'app',
@@ -395,7 +465,6 @@ export function createFirestoreBackend(): Backend {
             dateISO: appointment.dateISO,
             startMin: appointment.startMin,
             durationMin: appointment.durationMin,
-            price: appointment.price,
             status: appointment.status,
             payment: appointment.payment,
             paymentMethod: null,
@@ -420,6 +489,8 @@ export function createFirestoreBackend(): Backend {
           )
         })
 
+        createdHere.set(appointment.id, appointment)
+        refresh()
         return { ok: true, appointment }
       } catch (error) {
         if (error instanceof SlotTaken) {

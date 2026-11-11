@@ -115,7 +115,6 @@ function appointment(patch: Partial<Appointment> & Pick<Appointment, 'id'>): App
     dateISO: '2026-11-06',
     startMin: 9 * 60,
     durationMin: 30,
-    price: 100,
     status: 'confirmado',
     payment: 'pendente',
     origin: 'app',

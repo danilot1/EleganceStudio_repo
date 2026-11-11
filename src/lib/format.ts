@@ -1,13 +1,3 @@
-const currency = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-})
-
-/** R$ 180,00 */
-export function formatBRL(value: number): string {
-  return currency.format(value)
-}
-
 /** Máscara de telefone brasileiro usada no cadastro: (11) 98765-4321 */
 export function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11)

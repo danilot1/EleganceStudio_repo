@@ -39,7 +39,8 @@ export function SlotPicker({
   days?: number
   startDateISO?: string
 }) {
-  const { appointments } = useAppState()
+  // Ocupação de todas as clientes (no Firebase vem de `agenda`, sem dados pessoais).
+  const { busyAppointments: appointments } = useAppState()
   const [selectedDate, setSelectedDate] = useState(value?.dateISO ?? startDateISO)
 
   // Quando o calendário da gestão abre o formulário já em um horário de outro dia,

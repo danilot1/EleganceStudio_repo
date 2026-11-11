@@ -87,7 +87,7 @@ describe('renderização das telas', () => {
       await screen.findByRole('heading', { level: 1, name: /Realize sua beleza natural/i }),
     ).toBeTruthy()
     expect(screen.getByText('Serviços Populares')).toBeTruthy()
-    expect(screen.getByText(/Corte & Visagismo Feminino/)).toBeTruthy()
+    expect(screen.getAllByText(/SPA dos pés/).length).toBeGreaterThan(0)
     expect(screen.getByText('Onde Estamos & Horários')).toBeTruthy()
     expect(screen.getByRole('link', { name: /Agendar agora/i })).toBeTruthy()
   })
@@ -95,12 +95,12 @@ describe('renderização das telas', () => {
   it('Serviços lista o catálogo agrupado e permite buscar', async () => {
     const user = userEvent.setup()
     renderRoute('/servicos')
-    expect(await screen.findByText('Podologia Especializada')).toBeTruthy()
-    expect(screen.getByText('Podologia Completa & Terapêutica')).toBeTruthy()
+    expect(await screen.findByText('Depilação Masculina')).toBeTruthy()
+    expect(screen.getByText('Olho de peixe')).toBeTruthy()
 
-    await user.type(screen.getByLabelText('Buscar serviço'), 'manicure')
-    expect(screen.getAllByText('Manicure Clássica').length).toBeGreaterThan(0)
-    expect(screen.queryByText('Podologia Completa & Terapêutica')).toBeNull()
+    await user.type(screen.getByLabelText('Buscar serviço'), 'micose')
+    expect(screen.getAllByText('Tratamento de micose com laser').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Olho de peixe')).toBeNull()
   })
 
   it('Entrar mostra o formulário e as contas de demonstração', async () => {
@@ -137,7 +137,7 @@ describe('renderização das telas', () => {
     renderRoute('/meus-agendamentos')
     expect(await screen.findByRole('button', { name: /Próximos/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Histórico/ })).toBeTruthy()
-    expect(screen.getAllByText(/Corte & Visagismo Feminino/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/SPA dos pés/).length).toBeGreaterThan(0)
   })
 
   it('Painel bloqueia cliente e libera a gestão', async () => {
@@ -203,7 +203,9 @@ describe('fluxo de agendamento', () => {
     await user.click(chooseButtons[0]!)
     expect(await screen.findByText('Etapa 2 de 4')).toBeTruthy()
 
-    // Etapa 2: profissional sugerida
+    // Etapa 2: o destaque é de Mão e Pé, que tem duas profissionais; só elas aparecem.
+    expect(screen.queryByRole('button', { name: /Claudia/ })).toBeNull()
+    await user.click(screen.getByRole('button', { name: /Cris/ }))
     await user.click(screen.getByRole('button', { name: /Ver horários disponíveis/i }))
     // A tela da etapa 3 não usa o rótulo "Etapa 3 de 4" (segue o print), então
     // verificamos pelo título da seção de data.
@@ -271,8 +273,8 @@ describe('gestão do atendimento', () => {
     renderRoute('/painel')
 
     expect(await screen.findByText(/Qualidade do dia/)).toBeTruthy()
-    // 1 falta em 4 atendimentos concluídos + 1 falta = 20% (dados de exemplo do dia).
-    expect(screen.getByText('20% no-show')).toBeTruthy()
+    // 1 falta em 5 atendimentos concluídos + 1 falta = 17% (dados de exemplo do dia).
+    expect(screen.getByText('17% no-show')).toBeTruthy()
 
     const cards = await screen.findAllByRole('article')
     const card = cards.find((item) => /Paula Andrade/.test(item.textContent ?? ''))
@@ -295,7 +297,7 @@ describe('gestão do atendimento', () => {
 
     // Escolhe um card que ainda não começou (o primeiro pode já ter passado hoje).
     const cards = await screen.findAllByRole('article')
-    const card = cards.find((item) => /Limpeza de Pele/.test(item.textContent ?? ''))!
+    const card = cards.find((item) => /Sobrancelha · Feminina/.test(item.textContent ?? ''))!
     expect(card).toBeTruthy()
     await user.click(within(card).getByRole('button', { name: /Cancelar Agendamento/i }))
     await user.click(within(card).getByRole('button', { name: 'Cancelar' }))

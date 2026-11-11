@@ -47,6 +47,11 @@ interface AppStateValue {
   groups: typeof SERVICE_GROUPS
   categories: typeof CATEGORIES
   appointments: Appointment[]
+  /**
+   * Atendimentos que ocupam a agenda, de todas as clientes, só com horário e status.
+   * É a base dos horários livres: `appointments` traz apenas o que a pessoa pode ler.
+   */
+  busyAppointments: Appointment[]
   /** Contas cadastradas — usadas pela gestão para consultar os dados das clientes. */
   users: User[]
   session: Session | null
@@ -106,7 +111,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => readSession())
 
   // O catálogo base é `data/catalog.ts`; a gestão só grava ajustes por serviço. Derivar
-  // a lista aqui (em vez de espalhar condições pelas telas) mantém preço, duração e
+  // a lista aqui (em vez de espalhar condições pelas telas) mantém duração e
   // disponibilidade consistentes no agendamento, na agenda e no painel.
   const allServices = useMemo<Service[]>(
     () =>
@@ -250,6 +255,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       groups: SERVICE_GROUPS,
       categories: CATEGORIES,
       appointments: db.appointments,
+      busyAppointments: db.busy ?? db.appointments,
       users: db.users,
       session,
       login,
@@ -269,6 +275,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }),
     [
       db.appointments,
+      db.busy,
       db.users,
       session,
       services,

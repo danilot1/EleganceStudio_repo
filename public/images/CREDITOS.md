@@ -7,7 +7,7 @@ substitua os arquivos por fotos do estúdio mantendo os mesmos nomes.
 | Arquivo | Conteúdo | Origem |
 | --- | --- | --- |
 | `home-hero.jpg` | Salão de beleza com estações de atendimento | StockSnap.io — CC0 |
-| `home-lounge.jpg` | Interior do estúdio: cadeiras vermelhas e flores secas | Rawpixel — CC0 |
+| `sala-podologia.jpg` | Sala de podologia do EleganceStudio | Foto do próprio estúdio |
 | `login-hero.jpg` | Cadeiras do estúdio ao lado da janela | Rawpixel — CC0 |
 | `servico-cabelo.jpg` | Detalhe de corte de cabelo com tesoura | StockSnap.io — CC0 |
 | `servico-unhas.jpg` | Manicure em atendimento | Rawpixel — CC0 |

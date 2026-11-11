@@ -18,18 +18,20 @@ import { Link } from 'react-router-dom'
 import { FeaturedServiceCard, ServiceRowCard } from '../components/cards'
 import { DemoNotice, Eyebrow, InfoNote, Photo, SectionHeading, Stat, cx } from '../components/ui'
 import { POPULAR_SERVICE_IDS } from '../data/catalog'
-import { formatBRL } from '../lib/format'
 import type { CategoryId } from '../lib/types'
 import { useAppState } from '../state/AppState'
 
-const STUDIO_ADDRESS = 'Av. das Américas, 4200 - Bloco B, Sala 204 - Barra da Tijuca, RJ'
+// Instagram do folheto "Nossos Serviços"; endereço informado pelo estúdio.
+const STUDIO_ADDRESS = 'Avenida General Newton Cavalcante, 9576 - Camaragibe - PE, 54786-013, Brasil'
 const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STUDIO_ADDRESS)}`
 
 /** Chips de destaque da Home (rótulos do protótipo). */
 const HOME_FILTERS: Array<{ label: string; categories: CategoryId[] | null }> = [
   { label: 'Todos', categories: null },
-  { label: 'Cabelo & Tratamento', categories: ['cabelos'] },
-  { label: 'Nails & Spa', categories: ['maos-pes', 'podologia'] },
+  { label: 'Podologia', categories: ['podologia'] },
+  { label: 'Mão e Pé', categories: ['maos-pes'] },
+  { label: 'Depilação', categories: ['depilacao'] },
+  { label: 'Cabeleireiro', categories: ['cabelos'] },
 ]
 
 /** Horário de funcionamento do estúdio, usado no selo "Aberto agora". */
@@ -41,11 +43,16 @@ export function studioIsOpenNow(now = new Date()): boolean {
   return minutes >= 8 * 60 && minutes < 18 * 60
 }
 
+/** Foto de cada card: unhas para as mãos, pedicure para pés e podologia, sobrancelha para depilação. */
+const CATEGORY_IMAGE: Record<CategoryId, string> = {
+  'maos-pes': 'homeServiceNails',
+  podologia: 'homeServicePedicure',
+  depilacao: 'homeServiceBrows',
+  cabelos: 'homeServiceHair',
+}
 const SERVICE_IMAGE: Record<string, string> = {
-  'corte-visagismo': 'homeServiceHair',
-  'mechas-luzes': 'homeServiceHair',
-  'escova-modeladora': 'homeServiceHair',
-  'manicure-classica': 'homeServiceNails',
+  pe: 'homeServicePedicure',
+  'spa-dos-pes': 'homeServicePedicure',
 }
 
 export function Home() {
@@ -79,8 +86,8 @@ export function Home() {
           Realize sua beleza natural com <em className="text-gold">atendimento exclusivo</em>
         </h1>
         <p className="text-[13px] leading-relaxed text-ink-muted">
-          Um santuário de bem-estar e estética dedicado ao cuidado capilar, estética e ritual
-          de autocuidado com especialistas renomadas.
+          Um santuário de bem-estar dedicado ao cuidado com mãos e pés, podologia e depilação,
+          com especialistas renomadas.
         </p>
       </section>
 
@@ -139,14 +146,19 @@ export function Home() {
           ))}
         </div>
 
-        {featured ? <FeaturedServiceCard service={featured} /> : null}
+        {featured ? (
+          <FeaturedServiceCard
+            service={featured}
+            imageKey={SERVICE_IMAGE[featured.id] ?? CATEGORY_IMAGE[featured.categoryId]}
+          />
+        ) : null}
 
         <div className="space-y-2.5">
           {others.map((service) => (
             <ServiceRowCard
               key={service.id}
               service={service}
-              imageKey={SERVICE_IMAGE[service.id] ?? 'homeServiceNails'}
+              imageKey={SERVICE_IMAGE[service.id] ?? CATEGORY_IMAGE[service.categoryId]}
             />
           ))}
         </div>
@@ -170,20 +182,30 @@ export function Home() {
           O cuidado da nossa arte nos detalhes: chás de especiarias, playlist acústica relaxante e
           estações equipadas com aromaterapia botânica.
         </p>
-        <div className="h-44 overflow-hidden rounded-[16px] border border-line">
-          <Photo imageKey="homeLounge" alt="Sala de espera do estúdio" caption="Foto do protótipo" />
-        </div>
-        <div className="space-y-1.5 rounded-[16px] border border-line bg-surface-2 p-3">
-          <p className="flex gap-0.5 text-gold" aria-label="5 de 5 estrelas">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <Star key={index} className="size-3.5 fill-current" aria-hidden />
-            ))}
-          </p>
-          <p className="text-[12px] italic leading-relaxed text-ink-soft">
-            “O estúdio mudou a relação com o meu cabelo. O ambiente é aconchegante e a equipe me
-            deixa sempre confiante.”
-          </p>
-          <p className="text-[11px] text-ink-muted">Camila Lourenço • Cliente VIP</p>
+        {/*
+          A foto da sala é vertical (3:4): o quadro segue a mesma proporção para ela aparecer
+          inteira, sem corte. No celular ocupa a largura do card; em telas largas fica ao lado
+          do depoimento, para não ficar alta demais.
+        */}
+        <div className="grid gap-3 sm:grid-cols-2 sm:items-center">
+          <figure className="relative aspect-[3/4] overflow-hidden rounded-[16px] border border-line">
+            <Photo imageKey="homeLounge" alt="Sala de podologia do EleganceStudio" />
+            <figcaption className="absolute bottom-3 left-3 badge bg-surface/90 text-ink-soft">
+              Sala de podologia
+            </figcaption>
+          </figure>
+          <div className="space-y-1.5 rounded-[16px] border border-line bg-surface-2 p-3">
+            <p className="flex gap-0.5 text-gold" aria-label="5 de 5 estrelas">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star key={index} className="size-3.5 fill-current" aria-hidden />
+              ))}
+            </p>
+            <p className="text-[12px] italic leading-relaxed text-ink-soft">
+              “O estúdio mudou a relação com o meu cabelo. O ambiente é aconchegante e a equipe me
+              deixa sempre confiante.”
+            </p>
+            <p className="text-[11px] text-ink-muted">Camila Lourenço • Cliente VIP</p>
+          </div>
         </div>
       </section>
 
@@ -241,20 +263,19 @@ export function Home() {
           Formas de pagamento: Débito, Crédito, Dinheiro e PIX
           <a
             className="ml-auto flex items-center gap-1 font-medium text-ink-soft"
-            href="https://instagram.com"
+            href="https://www.instagram.com/elegancestudio2.5/"
             target="_blank"
             rel="noreferrer"
           >
             <AtSign className="size-3.5" aria-hidden />
-            @eleganceestudio
+            @elegancestudio2.5
           </a>
         </div>
       </section>
 
       <section className="space-y-2 text-center">
         <InfoNote icon={Sparkles} title="EleganceStudio">
-          Seu refúgio de beleza e cuidado premium. Serviços a partir de{' '}
-          {formatBRL(Math.min(...services.map((service) => service.price)))}.
+          Seu refúgio de beleza e cuidado premium.
         </InfoNote>
         <Link
           to="/servicos"

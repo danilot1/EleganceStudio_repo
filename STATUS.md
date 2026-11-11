@@ -78,49 +78,45 @@ tela em vez de simular sucesso:
 2. **Nenhuma referência de desktop.** Todas as telas enviadas são mobile (~390 px). A área do
    cliente é uma coluna central de até 560 px; o Painel Executivo vira duas colunas em telas
    grandes. Essa decisão de layout é deste projeto, não do protótipo.
-3. **Preços estimados.** Apareceram no protótipo: Corte & Visagismo R$ 180, Escova R$ 130,
-   Mechas R$ 390, Manicure R$ 75 e Limpeza de Pele & LED R$ 210. Os demais são estimativas
-   (marcadas com `priceEstimated: true` em `src/data/catalog.ts`):
-   Lavagem Especial 90, Hidratação Profunda 160, Coloração Glow 250, Botox Capilar 280,
-   Progressiva Orgânica 450, Pedicure Spa 95, Combo Pés e Mão 150, Podologia Completa 220,
-   Design de Sobrancelha 70, Depilação Facial 110.
-4. **Descrições de serviço reconstruídas.** O texto do print é pequeno e parte está cortada;
-   as descrições foram reescritas no mesmo tom. Os depoimentos da Home também.
-5. **Catálogo com 15 itens, não 14.** O filtro do print mostra "Todos (14)". A seção de
-   estética aparece cortada, e uma cliente tem agendamento de "Limpeza de Pele Profunda & LED"
-   — esse serviço existe no catálogo, então a contagem do filtro é dinâmica e mostra 15.
-6. **Divergência de duração no protótipo.** A Home mostra "Mechas & Balayage — 180 min" e o
-   catálogo mostra "Mechas · Luzes Iluminadas — 2h30". Vale a duração do catálogo (150 min),
-   porque é a mesma tela que define o serviço.
-7. **"Próximos (3)" em Meus Agendamentos.** O print mostra (2). O Painel mostra a mesma cliente
+3. **Catálogo da gestão, sem preços.** 39 serviços em cinco grupos: Podologia, Mão e Pé,
+   Depilação feminina e masculina e Cabeleireiro. O site não mostra preço em nenhum lugar (nem
+   no painel nem nos e-mails), e o preço saiu do modelo de dados. As durações em
+   `src/data/catalog.ts` são estimativas: a gestão confere cada uma na aba Serviços do painel.
+   Cada profissional atende só as suas categorias (Simone: Podologia, Mão e Pé e Depilação;
+   Cris: Mão e Pé e Depilação; Claudia: Cabeleireiro), e o agendamento só oferece quem faz o
+   serviço escolhido. Avaliações de Simone e Cris ainda são do protótipo.
+4. **Serviços só com o nome.** A lista da gestão traz apenas os nomes, então os serviços não
+   têm descrição. "X1" e "X2" seguem o nome da lista. A segunda foto do salão na Home é a sala
+   de podologia do estúdio; as demais fotos e os depoimentos ainda são do protótipo.
+5. **"Próximos (3)" em Meus Agendamentos.** O print mostra (2). O Painel mostra a mesma cliente
    (Mariana Silveira) em um atendimento de hoje, e os dois registros pertencem à mesma conta —
    mantivemos a coerência dos dados em vez de duplicar a cliente.
-8. **Horários exatos variam.** O print mostra um dia específico (09:00, 10:00, 13:30…). Aqui a
+6. **Horários exatos variam.** O print mostra um dia específico (09:00, 10:00, 13:30…). Aqui a
    grade é gerada por regra (30 min, 09:00–19:00, almoço 12:00–13:00) e filtrada pelos
    agendamentos existentes, então os horários mudam por dia e por profissional.
-9. **Indicadores calculados.** No print o painel mostra valores fixos (11 atendimentos,
+7. **Indicadores calculados.** No print o painel mostra valores fixos (11 atendimentos,
    R$ 2.150, 88%). Aqui eles são calculados sobre os atendimentos registrados, então mudam
    quando você cancela, conclui ou reagenda.
-10. **Fontes e cores aproximadas.** Os tokens (`src/index.css`) foram estimados lendo os
+8. **Fontes e cores aproximadas.** Os tokens (`src/index.css`) foram estimados lendo os
     prints: fundo creme `#F6F1E7`, acento bronze `#8B6B2E`, títulos em serif
     (Fraunces) e corpo em Inter. Não são os valores oficiais do design. A wordmark da logo
     usa Cinzel (capitais romanas), mantida por ter sido ajustada à foto de referência.
-11. **Abas de Serviços, Clientes e Profissionais do painel** aparecem cortadas no print; foram
+9. **Abas de Serviços, Clientes e Profissionais do painel** aparecem cortadas no print; foram
     implementadas como leitura (catálogo, contatos e equipe), sem cadastro/edição de serviços
     (o protótipo não define esse fluxo).
-12. **Agendamento sem login é permitido.** Um agendamento feito deslogado não aparece em "Meus
+10. **Agendamento sem login é permitido.** Um agendamento feito deslogado não aparece em "Meus
     Agendamentos", porque não fica vinculado a uma conta — a tela de revisão avisa isso. Em troca,
     essa tela pede um e-mail: é por ele que a convidada recebe confirmação e lembrete.
-13. **Falta não é cancelamento.** A falta é registrada pela gestão depois do horário marcado,
+11. **Falta não é cancelamento.** A falta é registrada pela gestão depois do horário marcado,
     libera a vaga no app (como o cancelamento) e pode ser revertida. A taxa de no-show usa como
     denominador só os atendimentos com desfecho (concluídos + faltas) do período — agendamentos
     futuros ainda podem virar presença ou falta, então não entram na conta. Cancelamentos
     aparecem no resumo, mas não entram na taxa.
-14. **Calendário em três visões.** A agenda da gestão tem visão Mês (grade de domingo a sábado
+12. **Calendário em três visões.** A agenda da gestão tem visão Mês (grade de domingo a sábado
     com vagas por dia), Semana e Dia (grade de 30 minutos por profissional). Verde = livre,
     vermelho = ocupado, cinza = fechado (fora do expediente, almoço ou horário que já passou).
     O domingo continua sem expediente e o sábado fecha às 14h.
-15. **Agenda sincronizada entre telas.** Gestão e cliente leem a mesma fonte de disponibilidade,
+13. **Agenda sincronizada entre telas.** Gestão e cliente leem a mesma fonte de disponibilidade,
     e o estado é recarregado quando outra aba grava (`storage`). Uma reserva feita em outra aba
     passa a ocupar o horário imediatamente — mas duas gravações no mesmo instante, em aparelhos
     diferentes, ainda precisam de um back-end com transação para serem realmente atômicas.
@@ -135,4 +131,4 @@ tela em vez de simular sucesso:
    registrados em `mail/`, mas só saem depois desse passo — ver `DEPLOY.md`.
 4. Endurecer a escrita em `agenda/`: mover a transação para uma Cloud Function (plano Blaze),
    para que as regras possam recusar escrita direta do cliente.
-5. Substituir preços estimados pelos valores oficiais e incluir as fotos do estúdio.
+5. Conferir as durações estimadas no painel e incluir as demais fotos do estúdio.

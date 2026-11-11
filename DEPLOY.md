@@ -15,7 +15,7 @@ que dá para validar sem elas (regras, índice, seed e backfill) já roda no emu
 - Uma conta Google e um projeto no [console do Firebase](https://console.firebase.google.com/).
 - Java **não** é necessário para publicar; ele só serve ao emulador (`npm run test:rules`,
   `npm run seed:demo`).
-- O repositório já aponta para o projeto **`elegancestudiodb`** (`.firebaserc`). Falta apenas a sua
+- O repositório já aponta para o projeto **`salao-de-beleza-bf03e`** (`.firebaserc`). Falta apenas a sua
   conta autorizar: `npx firebase login`.
 
 ## 2. Criar o projeto e ligar os serviços
@@ -45,7 +45,7 @@ gravar no Firestore (`src/lib/backend/firestore.ts`). Sem elas, continua no modo
 
 ```bash
 npx firebase login
-# o projeto já está vinculado em .firebaserc (elegancestudiodb)
+# o projeto já está vinculado em .firebaserc (salao-de-beleza-bf03e)
 npm run deploy:rules
 ```
 
@@ -76,9 +76,13 @@ uma versão anterior restaura o comportamento na hora, sem redeploy do aplicativ
 
 ### Publicar o aplicativo (Hosting)
 
-O `firebase.json` já aponta o Hosting para `dist/`, com **reescrita de SPA** (qualquer rota cai no
+O `firebase.json` publica no site **`elegancestudio`** do Hosting (https://elegancestudio.web.app),
+criado com `npx firebase hosting:sites:create elegancestudio`. Ele aponta o Hosting para `dist/`, com **reescrita de SPA** (qualquer rota cai no
 `index.html`, necessário para recarregar `/painel` ou `/agendar/revisao` sem 404) e cache longo
-para os arquivos com hash em `assets/`.
+para os arquivos com hash em `assets/`. Todo o resto sai com `no-cache` — inclusive as rotas
+reescritas: o header casa com o caminho pedido (`/painel`), não com o `index.html` entregue, e sem
+isso o navegador poderia guardar um `index.html` antigo apontando para assets que a nova
+publicação já removeu (tela em branco depois do deploy).
 
 ```bash
 npm run deploy:app     # build de produção + firebase deploy --only hosting
@@ -153,8 +157,9 @@ Marque cada item olhando o comportamento real, não só o console do Firebase:
       de conflito.
 - [ ] **Seed/backfill**: `npm run seed:backfill` termina com "todos os agendamentos têm bloco no
       documento do dia".
-- [ ] **Rotas profundas**: abrir `https://<projeto>.web.app/painel` direto pela URL e recarregar
-      a página não devolve 404 — confirma a reescrita de SPA.
+- [ ] **Rotas profundas**: abrir `https://elegancestudio.web.app/painel` direto pela URL e recarregar
+      a página não devolve 404 — confirma a reescrita de SPA. `curl -sI` nessa URL mostra
+      `Cache-Control: no-cache`; num arquivo de `assets/`, `max-age=31536000, immutable`.
 - [ ] **Regras**: `npm run test:rules` continua passando depois de qualquer alteração em
       `firestore.rules` (roda no emulador, sem tocar no projeto real).
 

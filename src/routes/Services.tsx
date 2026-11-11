@@ -2,7 +2,7 @@ import { Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CatalogServiceRow, ProfessionalCard } from '../components/cards'
 import { Avatar, cx } from '../components/ui'
-import { CATEGORIES, SERVICE_GROUPS } from '../data/catalog'
+import { CATEGORIES, SERVICE_GROUPS, namesLabel, professionalsFor } from '../data/catalog'
 import type { CategoryId } from '../lib/types'
 import { useAppState } from '../state/AppState'
 
@@ -17,11 +17,12 @@ export function Services() {
     return services.filter((service) => {
       const matchesCategory = category === 'todos' || service.categoryId === category
       const matchesProfessional =
-        !professionalFilter || service.professionalId === professionalFilter
+        !professionalFilter ||
+        professionalsFor(service.categoryId).some((item) => item.id === professionalFilter)
       const matchesTerm =
         !term ||
         service.name.toLowerCase().includes(term) ||
-        service.description.toLowerCase().includes(term)
+        (service.description ?? '').toLowerCase().includes(term)
       return matchesCategory && matchesProfessional && matchesTerm
     })
   }, [services, category, professionalFilter, query])
@@ -37,8 +38,8 @@ export function Services() {
         <p className="eyebrow">Menu de procedimentos</p>
         <h1 className="text-[26px] leading-tight text-ink">Nossos Serviços &amp; Cuidados</h1>
         <p className="text-[12px] leading-relaxed text-ink-muted">
-          Escolha um procedimento para iniciar o agendamento. Valores e duração de cada serviço
-          aparecem ao lado do nome.
+          Escolha um procedimento para iniciar o agendamento. A duração de cada serviço aparece
+          ao lado do nome.
         </p>
       </header>
 
@@ -122,9 +123,7 @@ export function Services() {
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-[18px] text-ink">{group.label}</h2>
               <p className="eyebrow">
-                {group.professionalId
-                  ? `Por: ${professionals.find((item) => item.id === group.professionalId)?.name}`
-                  : group.studioLabel}
+                Com {namesLabel(professionalsFor(group.categoryId))}
               </p>
             </div>
             <div className="divide-y divide-line">
@@ -140,6 +139,14 @@ export function Services() {
             Nenhum serviço encontrado para os filtros atuais.
           </p>
         ) : null}
+      </section>
+
+      <section className="card space-y-2">
+        <p className="eyebrow">Como funciona o atendimento</p>
+        <p className="text-[12px] text-ink-muted">
+          Os atendimentos são realizados via agendamento. Para quem vier ao estúdio sem
+          agendamento, é preciso verificar a disponibilidade no local.
+        </p>
       </section>
 
       <section className="card space-y-2">

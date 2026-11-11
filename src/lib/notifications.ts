@@ -1,6 +1,5 @@
 import { findProfessional, findService } from '../data/catalog'
 import { minutesToTime, shortDateLabel } from './dates'
-import { formatBRL } from './format'
 import type { Appointment } from './types'
 
 /**
@@ -49,7 +48,6 @@ function details(appointment: Appointment) {
     title: appointment.title ?? service?.name ?? 'Atendimento',
     professional: professional?.name ?? 'Estúdio',
     when: `${shortDateLabel(appointment.dateISO)} às ${minutesToTime(appointment.startMin)}`,
-    price: formatBRL(appointment.price),
   }
 }
 
@@ -93,7 +91,7 @@ export function buildMail(input: {
   to: string
 }): MailDraft {
   const { kind, appointment, to } = input
-  const { title, professional, when, price } = details(appointment)
+  const { title, professional, when } = details(appointment)
   const name = firstName(appointment.clientName)
 
   const intro =
@@ -121,7 +119,7 @@ export function buildMail(input: {
     `Serviço: ${title}`,
     `Profissional: ${professional}`,
     `Quando: ${when}`,
-    `Valor: ${price} (pagamento no local)`,
+    'Pagamento no local, ao final do atendimento.',
     '',
     closing,
     '',
@@ -132,7 +130,7 @@ export function buildMail(input: {
     ['Serviço', title],
     ['Profissional', professional],
     ['Quando', when],
-    ['Valor', `${price} (pagamento no local)`],
+    ['Pagamento', 'No local, ao final do atendimento'],
   ], closing)
 
   return { kind, to, subject, text, html, appointmentId: appointment.id }

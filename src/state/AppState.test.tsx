@@ -37,11 +37,11 @@ function weekdayISO(days: number): string {
 }
 
 const BASE_INPUT = {
-  serviceId: 'corte-visagismo',
+  // Mão e Pé: atendido por Simone e Cris.
+  serviceId: 'mao',
   professionalId: 'simone',
   startMin: 16 * 60,
   durationMin: 30,
-  price: 120,
   clientName: 'Cliente de Teste',
   status: 'confirmado' as const,
   origin: 'balcao' as const,
@@ -125,7 +125,7 @@ describe('conflito de horários', () => {
     await act(async () => {
       first = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'camila',
+        professionalId: 'cris',
         dateISO,
         startMin: 10 * 60,
         durationMin: 60,
@@ -135,7 +135,7 @@ describe('conflito de horários', () => {
     await act(async () => {
       second = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'camila',
+        professionalId: 'cris',
         dateISO,
         startMin: 10 * 60 + 30,
         durationMin: 30,
@@ -148,7 +148,7 @@ describe('conflito de horários', () => {
     expect(second?.error).toMatch(/ocupado/)
     expect(
       result.current.appointments.filter(
-        (item) => item.dateISO === dateISO && item.professionalId === 'camila',
+        (item) => item.dateISO === dateISO && item.professionalId === 'cris',
       ),
     ).toHaveLength(1)
   })
@@ -163,7 +163,7 @@ describe('conflito de horários', () => {
     await act(async () => {
       a = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'camila',
+        professionalId: 'cris',
         dateISO,
         startMin: 10 * 60,
         durationMin: 60,
@@ -172,7 +172,7 @@ describe('conflito de horários', () => {
     await act(async () => {
       b = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'juliana',
+        professionalId: 'simone',
         dateISO,
         startMin: 10 * 60,
         durationMin: 60,
@@ -181,6 +181,31 @@ describe('conflito de horários', () => {
 
     expect(a?.ok).toBe(true)
     expect(b?.ok).toBe(true)
+  })
+
+  it('recusa profissional que não atende a categoria do serviço', async () => {
+    const { result } = renderState()
+    let outcome: Created | undefined
+    await act(async () => {
+      // Claudia é cabeleireira: não faz Mão e Pé.
+      outcome = await result.current.createAppointment({
+        ...BASE_INPUT,
+        professionalId: 'claudia',
+        dateISO: weekdayISO(6),
+      })
+    })
+    expect(outcome?.ok).toBe(false)
+    expect(outcome?.error).toMatch(/não realiza este serviço/)
+
+    await act(async () => {
+      outcome = await result.current.createAppointment({
+        ...BASE_INPUT,
+        serviceId: 'corte',
+        professionalId: 'claudia',
+        dateISO: weekdayISO(6),
+      })
+    })
+    expect(outcome?.ok).toBe(true)
   })
 
   it('recusa atendimento que terminaria depois do fechamento', async () => {
@@ -215,7 +240,7 @@ describe('avisos por e-mail', () => {
     await act(async () => {
       created = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'beatriz',
+        professionalId: 'simone',
         dateISO: weekdayISO(6),
         startMin: 17 * 60,
         clientName: 'Convidada Sem Conta',
@@ -239,7 +264,7 @@ describe('avisos por e-mail', () => {
     await act(async () => {
       created = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'beatriz',
+        professionalId: 'simone',
         dateISO: weekdayISO(6),
         startMin: 17 * 60 + 30,
         clientName: 'Cliente do Lembrete',
@@ -265,23 +290,21 @@ describe('avisos por e-mail', () => {
 })
 
 describe('gestão de serviços', () => {
-  it('aplica duração e preço novos ao catálogo em uso', async () => {
+  it('aplica a duração nova ao catálogo em uso', async () => {
     const { result } = renderState()
 
     let outcome: Awaited<ReturnType<State['updateService']>> | undefined
     await act(async () => {
-      outcome = await result.current.updateService('manicure-classica', {
+      outcome = await result.current.updateService('mao', {
         durationMin: 60,
-        price: 90,
       })
     })
 
     expect(outcome?.ok).toBe(true)
-    const active = result.current.services.find((item) => item.id === 'manicure-classica')
+    const active = result.current.services.find((item) => item.id === 'mao')
     expect(active?.durationMin).toBe(60)
-    expect(active?.price).toBe(90)
     expect(
-      result.current.allServices.find((item) => item.id === 'manicure-classica')?.durationMin,
+      result.current.allServices.find((item) => item.id === 'mao')?.durationMin,
     ).toBe(60)
   })
 
@@ -290,13 +313,13 @@ describe('gestão de serviços', () => {
 
     let outcome: Awaited<ReturnType<State['updateService']>> | undefined
     await act(async () => {
-      outcome = await result.current.updateService('manicure-classica', { durationMin: 7 })
+      outcome = await result.current.updateService('mao', { durationMin: 7 })
     })
 
     expect(outcome?.ok).toBe(false)
     expect(outcome?.error).toMatch(/entre 15 e 240/)
     expect(
-      result.current.services.find((item) => item.id === 'manicure-classica')?.durationMin,
+      result.current.services.find((item) => item.id === 'mao')?.durationMin,
     ).toBe(40)
   })
 
@@ -304,12 +327,12 @@ describe('gestão de serviços', () => {
     const { result } = renderState()
 
     await act(async () => {
-      await result.current.updateService('lavagem-especial', { active: false })
+      await result.current.updateService('esfoliacao-pe-mao', { active: false })
     })
 
-    expect(result.current.services.some((item) => item.id === 'lavagem-especial')).toBe(false)
+    expect(result.current.services.some((item) => item.id === 'esfoliacao-pe-mao')).toBe(false)
     expect(
-      result.current.allServices.find((item) => item.id === 'lavagem-especial')?.active,
+      result.current.allServices.find((item) => item.id === 'esfoliacao-pe-mao')?.active,
     ).toBe(false)
   })
 
@@ -318,20 +341,20 @@ describe('gestão de serviços', () => {
     await act(async () => {
       await result.current.createAppointment({
         ...BASE_INPUT,
-        serviceId: 'corte-visagismo',
+        serviceId: 'podologia-procedimento-basico',
         dateISO: weekdayISO(6),
       })
     })
 
     let outcome: Awaited<ReturnType<State['updateService']>> | undefined
     await act(async () => {
-      outcome = await result.current.updateService('corte-visagismo', { active: false })
+      outcome = await result.current.updateService('podologia-procedimento-basico', { active: false })
     })
 
     expect(outcome?.ok).toBe(false)
     expect(outcome?.error).toMatch(/agendamento ativo/)
     expect(
-      result.current.services.find((item) => item.id === 'corte-visagismo')?.active,
+      result.current.services.find((item) => item.id === 'podologia-procedimento-basico')?.active,
     ).not.toBe(false)
   })
 })
