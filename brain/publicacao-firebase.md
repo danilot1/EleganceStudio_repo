@@ -33,8 +33,9 @@ site que abre em modo local, com cada visitante gravando no próprio navegador �
 publicar, porque parece certo. Ver [[limites-e-riscos]].
 
 Validado sem conta: `npm run build` + `npx firebase emulators:start --only hosting` serve o
-`dist/` em `127.0.0.1:5000`; raiz e `/painel` respondem 200 e os arquivos de `assets/` saem com
-cache imutável.
+`dist/` em `127.0.0.1:5000`; raiz e `/painel` respondem 200 com `no-cache` e os arquivos de
+`assets/` saem com cache imutável. O header de `no-cache` usa `source: "**"` (antes da regra de
+`assets/`) porque o Hosting casa o header com a rota pedida, não com o `index.html` reescrito.
 
 ## O índice não é decoração
 

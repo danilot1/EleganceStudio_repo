@@ -78,7 +78,10 @@ uma versão anterior restaura o comportamento na hora, sem redeploy do aplicativ
 
 O `firebase.json` já aponta o Hosting para `dist/`, com **reescrita de SPA** (qualquer rota cai no
 `index.html`, necessário para recarregar `/painel` ou `/agendar/revisao` sem 404) e cache longo
-para os arquivos com hash em `assets/`.
+para os arquivos com hash em `assets/`. Todo o resto sai com `no-cache` — inclusive as rotas
+reescritas: o header casa com o caminho pedido (`/painel`), não com o `index.html` entregue, e sem
+isso o navegador poderia guardar um `index.html` antigo apontando para assets que a nova
+publicação já removeu (tela em branco depois do deploy).
 
 ```bash
 npm run deploy:app     # build de produção + firebase deploy --only hosting
@@ -154,7 +157,8 @@ Marque cada item olhando o comportamento real, não só o console do Firebase:
 - [ ] **Seed/backfill**: `npm run seed:backfill` termina com "todos os agendamentos têm bloco no
       documento do dia".
 - [ ] **Rotas profundas**: abrir `https://<projeto>.web.app/painel` direto pela URL e recarregar
-      a página não devolve 404 — confirma a reescrita de SPA.
+      a página não devolve 404 — confirma a reescrita de SPA. `curl -sI` nessa URL mostra
+      `Cache-Control: no-cache`; num arquivo de `assets/`, `max-age=31536000, immutable`.
 - [ ] **Regras**: `npm run test:rules` continua passando depois de qualquer alteração em
       `firestore.rules` (roda no emulador, sem tocar no projeto real).
 
