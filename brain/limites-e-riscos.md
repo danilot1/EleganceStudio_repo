@@ -28,7 +28,7 @@ Documento de honestidade. Se algo aqui surpreender alguém depois, é falha dest
 - **Preços**: cinco vieram do protótipo, dez são estimativa (`priceEstimated: true`).
 - **Descrições e depoimentos**: reescritos porque o print estava cortado.
 - **Cores e fontes**: aproximadas dos prints.
-- **Fotos**: placeholders.
+- **Fotos**: banco de imagens CC0, não o estúdio; o mapa segue em placeholder.
 
 ## O que não existe e nenhuma tela finge
 

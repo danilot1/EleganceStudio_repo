@@ -48,7 +48,7 @@ mensagens** aos clientes — nada disso é código pendente.
 | Dados de exemplo | carga inicial em `src/lib/storage.ts`, deslocada para "hoje" a cada dia; no Firebase, a mesma carga é gravada por `npm run seed:demo` | dados reais do estúdio |
 | Indicadores do painel | calculados sobre os dados locais | calcular no servidor, com histórico e filtros por período |
 | Taxa de no-show | calculada no navegador sobre os atendimentos locais | calcular no servidor, sobre o histórico completo do estúdio |
-| Fotos | placeholders em CSS | arquivos em `public/images/` + `src/data/images.ts` |
+| Fotos | catálogo preenchido com fotos CC0 de banco de imagens (`public/images/`) e mapa ainda em placeholder | trocar pelos arquivos do estúdio, mantendo os nomes (ver `public/images/CREDITOS.md`) |
 | Publicação | `firebase.json` publica as regras, o índice composto (`firestore.indexes.json`) e o app em Hosting (`dist/`, com reescrita de SPA); `npm run deploy:rules`, `npm run deploy:app` e `npm run deploy:all` executam, e `DEPLOY.md` lista o passo a passo e o checklist | falta rodar no projeto do dono (login, projeto, região) — nada foi publicado, e a primeira conta de gestão precisa ser promovida no console |
 
 ## 3. Não está implementado (nenhuma tela finge que funciona)

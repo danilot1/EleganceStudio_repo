@@ -151,9 +151,10 @@ derivado do atendimento, então abrir o painel várias vezes não duplica aviso.
 
 - **Cores, fontes e sombras:** tudo em `src/index.css`, no bloco `@theme`. Alterar um valor
   muda todas as telas de uma vez.
-- **Fotos:** o protótipo usa fotos que não vieram no export. Cada posição mostra hoje um
-  placeholder elegante. Para usar as imagens reais, coloque os arquivos em `public/images/`
-  e aponte o caminho em `src/data/images.ts` — nenhum outro arquivo precisa mudar.
+- **Fotos:** as posições de foto usam imagens CC0 de banco de imagens em `public/images/`
+  (créditos e licenças em `public/images/CREDITOS.md`), no lugar das fotos do estúdio, que
+  não vieram no export. Para trocar, substitua os arquivos mantendo os nomes ou aponte novos
+  caminhos em `src/data/images.ts` — nenhum outro arquivo precisa mudar.
 - **Serviços e preços:** o catálogo base fica em `src/data/catalog.ts` (preços estimados
   marcados com `priceEstimated: true`, listados no STATUS.md). A gestão pode ajustar duração,
   preço e disponibilidade em **Painel → Serviços**, sem editar código.

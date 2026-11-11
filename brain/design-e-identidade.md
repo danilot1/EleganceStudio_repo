@@ -27,8 +27,10 @@ registrado como divergência em `STATUS.md`.
 
 ## Fotos
 
-O export não trouxe as imagens. Cada posição mostra um placeholder elegante em CSS. Para usar as
-reais: colocar os arquivos em `public/images/` e apontar em `src/data/images.ts`. Nenhum outro
+O export não trouxe as imagens. As posições de foto são servidas por `public/images/` e
+registradas em `src/data/images.ts` (hoje com fotos CC0 de banco de imagens, creditadas em
+`public/images/CREDITOS.md`). Trocar por fotos do estúdio é substituir arquivo com o mesmo nome.
+O mapa continua em placeholder em CSS, porque não há serviço de mapas no projeto. Nenhum outro
 arquivo muda — é o mesmo princípio do [[contrato-backend]], aplicado a mídia.
 
 ## Layout

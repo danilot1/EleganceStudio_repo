@@ -209,7 +209,7 @@ export function Home() {
           </div>
         </div>
         <div className="h-32 overflow-hidden rounded-[14px] border border-line">
-          <Photo imageKey="homeLounge" alt="Mapa da localização (placeholder)" caption="Mapa — placeholder" />
+          <Photo imageKey="homeMap" alt="Mapa da localização (placeholder)" caption="Mapa — placeholder" />
         </div>
         <div className="flex gap-2">
           <a
