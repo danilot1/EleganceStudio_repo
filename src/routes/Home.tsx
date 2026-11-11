@@ -182,20 +182,30 @@ export function Home() {
           O cuidado da nossa arte nos detalhes: chás de especiarias, playlist acústica relaxante e
           estações equipadas com aromaterapia botânica.
         </p>
-        <div className="h-44 overflow-hidden rounded-[16px] border border-line">
-          <Photo imageKey="homeLounge" alt="Sala de podologia do EleganceStudio" />
-        </div>
-        <div className="space-y-1.5 rounded-[16px] border border-line bg-surface-2 p-3">
-          <p className="flex gap-0.5 text-gold" aria-label="5 de 5 estrelas">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <Star key={index} className="size-3.5 fill-current" aria-hidden />
-            ))}
-          </p>
-          <p className="text-[12px] italic leading-relaxed text-ink-soft">
-            “O estúdio mudou a relação com o meu cabelo. O ambiente é aconchegante e a equipe me
-            deixa sempre confiante.”
-          </p>
-          <p className="text-[11px] text-ink-muted">Camila Lourenço • Cliente VIP</p>
+        {/*
+          A foto da sala é vertical (3:4): o quadro segue a mesma proporção para ela aparecer
+          inteira, sem corte. No celular ocupa a largura do card; em telas largas fica ao lado
+          do depoimento, para não ficar alta demais.
+        */}
+        <div className="grid gap-3 sm:grid-cols-2 sm:items-center">
+          <figure className="relative aspect-[3/4] overflow-hidden rounded-[16px] border border-line">
+            <Photo imageKey="homeLounge" alt="Sala de podologia do EleganceStudio" />
+            <figcaption className="absolute bottom-3 left-3 badge bg-surface/90 text-ink-soft">
+              Sala de podologia
+            </figcaption>
+          </figure>
+          <div className="space-y-1.5 rounded-[16px] border border-line bg-surface-2 p-3">
+            <p className="flex gap-0.5 text-gold" aria-label="5 de 5 estrelas">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star key={index} className="size-3.5 fill-current" aria-hidden />
+              ))}
+            </p>
+            <p className="text-[12px] italic leading-relaxed text-ink-soft">
+              “O estúdio mudou a relação com o meu cabelo. O ambiente é aconchegante e a equipe me
+              deixa sempre confiante.”
+            </p>
+            <p className="text-[11px] text-ink-muted">Camila Lourenço • Cliente VIP</p>
+          </div>
         </div>
       </section>
 
