@@ -35,6 +35,12 @@ export interface Database {
   seedDateISO: string
   users: User[]
   appointments: Appointment[]
+  /**
+   * Ocupação da agenda para calcular horários livres, quando `appointments` não traz
+   * todos os atendimentos (no Firebase, a cliente só lê os próprios). Ausente no modo
+   * local, em que `appointments` já é a agenda inteira.
+   */
+  busy?: Appointment[]
   /** Vazio quando a gestão nunca editou o catálogo. */
   serviceOverrides: ServiceOverrides
   /**
