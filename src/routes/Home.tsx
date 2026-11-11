@@ -43,7 +43,7 @@ export function studioIsOpenNow(now = new Date()): boolean {
 
 const SERVICE_IMAGE: Record<string, string> = {
   'corte-visagismo': 'homeServiceHair',
-  'mechas-luzes': 'homeServiceBrows',
+  'mechas-luzes': 'homeServiceHair',
   'escova-modeladora': 'homeServiceHair',
   'manicure-classica': 'homeServiceNails',
 }
