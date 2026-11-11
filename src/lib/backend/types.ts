@@ -37,7 +37,8 @@ export interface NewAppointmentInput {
   dateISO: string
   startMin: number
   durationMin: number
-  price: number
+  /** Ausente quando o serviço é "Sob consulta". */
+  price?: number
   clientName: string
   clientNote?: string
   /** E-mail para os avisos; a convidada informa na etapa de revisão. */
@@ -54,7 +55,8 @@ export type CreateResult = ActionResult & { appointment?: Appointment }
 /** Campos do catálogo que a gestão pode ajustar. */
 export interface ServicePatch {
   durationMin?: number
-  price?: number
+  /** `null` volta o serviço para "Sob consulta"; ausente = não muda o preço. */
+  price?: number | null
   active?: boolean
 }
 

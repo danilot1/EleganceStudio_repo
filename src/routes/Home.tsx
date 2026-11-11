@@ -22,14 +22,16 @@ import { formatBRL } from '../lib/format'
 import type { CategoryId } from '../lib/types'
 import { useAppState } from '../state/AppState'
 
-const STUDIO_ADDRESS = 'Av. das Américas, 4200 - Bloco B, Sala 204 - Barra da Tijuca, RJ'
+// Endereço e Instagram do folheto "Nossos Serviços".
+const STUDIO_ADDRESS = 'PE-027, Aldeia dos Camarás, Camaragibe - Pernambuco, 54786-300'
 const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STUDIO_ADDRESS)}`
 
 /** Chips de destaque da Home (rótulos do protótipo). */
 const HOME_FILTERS: Array<{ label: string; categories: CategoryId[] | null }> = [
   { label: 'Todos', categories: null },
-  { label: 'Cabelo & Tratamento', categories: ['cabelos'] },
-  { label: 'Nails & Spa', categories: ['maos-pes', 'podologia'] },
+  { label: 'Mãos & Pés', categories: ['maos-pes'] },
+  { label: 'Podologia', categories: ['podologia'] },
+  { label: 'Depilação', categories: ['depilacao'] },
 ]
 
 /** Horário de funcionamento do estúdio, usado no selo "Aberto agora". */
@@ -41,17 +43,29 @@ export function studioIsOpenNow(now = new Date()): boolean {
   return minutes >= 8 * 60 && minutes < 18 * 60
 }
 
+/** Foto de cada card: unhas para as mãos, pedicure para pés e podologia, sobrancelha para depilação. */
+const CATEGORY_IMAGE: Record<CategoryId, string> = {
+  'maos-pes': 'homeServiceNails',
+  podologia: 'homeServicePedicure',
+  depilacao: 'homeServiceBrows',
+}
 const SERVICE_IMAGE: Record<string, string> = {
-  'corte-visagismo': 'homeServiceHair',
-  'mechas-luzes': 'homeServiceHair',
-  'escova-modeladora': 'homeServiceHair',
-  'manicure-classica': 'homeServiceNails',
+  pe: 'homeServicePedicure',
+  'spa-dos-pes': 'homeServicePedicure',
 }
 
 export function Home() {
   const { services, session } = useAppState()
   const [activeFilter, setActiveFilter] = useState(0)
   const [contactNotice, setContactNotice] = useState(false)
+
+  // Sem nenhum preço definido pela gestão, a Home não anuncia valor.
+  const lowestPrice = useMemo(() => {
+    const prices = services
+      .map((service) => service.price)
+      .filter((price): price is number => typeof price === 'number')
+    return prices.length ? Math.min(...prices) : undefined
+  }, [services])
 
   const popular = useMemo(
     () =>
@@ -79,8 +93,8 @@ export function Home() {
           Realize sua beleza natural com <em className="text-gold">atendimento exclusivo</em>
         </h1>
         <p className="text-[13px] leading-relaxed text-ink-muted">
-          Um santuário de bem-estar e estética dedicado ao cuidado capilar, estética e ritual
-          de autocuidado com especialistas renomadas.
+          Um santuário de bem-estar dedicado ao cuidado com mãos e pés, podologia e depilação,
+          com especialistas renomadas.
         </p>
       </section>
 
@@ -139,14 +153,19 @@ export function Home() {
           ))}
         </div>
 
-        {featured ? <FeaturedServiceCard service={featured} /> : null}
+        {featured ? (
+          <FeaturedServiceCard
+            service={featured}
+            imageKey={SERVICE_IMAGE[featured.id] ?? CATEGORY_IMAGE[featured.categoryId]}
+          />
+        ) : null}
 
         <div className="space-y-2.5">
           {others.map((service) => (
             <ServiceRowCard
               key={service.id}
               service={service}
-              imageKey={SERVICE_IMAGE[service.id] ?? 'homeServiceNails'}
+              imageKey={SERVICE_IMAGE[service.id] ?? CATEGORY_IMAGE[service.categoryId]}
             />
           ))}
         </div>
@@ -241,20 +260,20 @@ export function Home() {
           Formas de pagamento: Débito, Crédito, Dinheiro e PIX
           <a
             className="ml-auto flex items-center gap-1 font-medium text-ink-soft"
-            href="https://instagram.com"
+            href="https://www.instagram.com/elegancestudio2.5/"
             target="_blank"
             rel="noreferrer"
           >
             <AtSign className="size-3.5" aria-hidden />
-            @eleganceestudio
+            @elegancestudio2.5
           </a>
         </div>
       </section>
 
       <section className="space-y-2 text-center">
         <InfoNote icon={Sparkles} title="EleganceStudio">
-          Seu refúgio de beleza e cuidado premium. Serviços a partir de{' '}
-          {formatBRL(Math.min(...services.map((service) => service.price)))}.
+          Seu refúgio de beleza e cuidado premium.
+          {lowestPrice === undefined ? null : ` Serviços a partir de ${formatBRL(lowestPrice)}.`}
         </InfoNote>
         <Link
           to="/servicos"

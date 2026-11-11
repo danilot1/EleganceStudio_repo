@@ -7,12 +7,18 @@ import { useStartBooking } from '../state/BookingContext'
 import { Avatar, Photo, cx } from './ui'
 
 /** Cartão grande usado em "Serviços Populares" na Home. */
-export function FeaturedServiceCard({ service }: { service: Service }) {
+export function FeaturedServiceCard({
+  service,
+  imageKey = 'homeServiceNails',
+}: {
+  service: Service
+  imageKey?: string
+}) {
   const startBooking = useStartBooking()
   return (
     <article className="overflow-hidden rounded-[18px] border border-line bg-surface shadow-card">
       <div className="relative h-40">
-        <Photo imageKey="homeServiceHair" alt={service.name} caption="Foto do protótipo" />
+        <Photo imageKey={imageKey} alt={service.name} caption="Foto do protótipo" />
         <span className="absolute left-3 top-3 badge bg-surface/90 text-ink-soft">
           <Clock className="size-3" aria-hidden />
           {durationLabel(service.durationMin)}

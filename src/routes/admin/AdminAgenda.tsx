@@ -21,7 +21,7 @@ import { Avatar, DemoNotice, Stat, SuccessNote, cx } from '../../components/ui'
 import { SERVICES, SERVICE_GROUPS } from '../../data/catalog'
 import { appointmentsOfDay, occupancyOf, summarizeDay } from '../../lib/agenda'
 import { fullDateLabel, numericDayMonth, todayISO, weekdayDateLabel } from '../../lib/dates'
-import { formatBRL } from '../../lib/format'
+import { PRICE_ON_REQUEST, formatBRL } from '../../lib/format'
 import { noShowStats } from '../../lib/noShow'
 import type { Service } from '../../lib/types'
 import { useAppState } from '../../state/AppState'
@@ -111,7 +111,7 @@ function AdminPanel() {
   const active = dayAppointments.filter(
     (appointment) => appointment.status !== 'cancelado' && appointment.status !== 'faltou',
   )
-  const revenue = active.reduce((total, appointment) => total + appointment.price, 0)
+  const revenue = active.reduce((total, appointment) => total + (appointment.price ?? 0), 0)
   const paidCount = active.filter((appointment) => appointment.payment === 'pago').length
   const cancelled = dayAppointments.filter(
     (appointment) => appointment.status === 'cancelado',
@@ -140,7 +140,7 @@ function AdminPanel() {
           user,
           total: mine.length,
           completed: completed.length,
-          spent: completed.reduce((total, appointment) => total + appointment.price, 0),
+          spent: completed.reduce((total, appointment) => total + (appointment.price ?? 0), 0),
           lastISO: completed.map((appointment) => appointment.dateISO).sort().at(-1),
           next: upcoming[0],
         }
@@ -328,7 +328,11 @@ function AdminPanel() {
             <Stat
               icon={TrendingUp}
               label="Previsto"
-              value={formatBRL(revenue).replace(/\s/g, ' ')}
+              value={
+                active.some((appointment) => typeof appointment.price === 'number')
+                  ? formatBRL(revenue).replace(/\s/g, ' ')
+                  : PRICE_ON_REQUEST
+              }
               hint={`${paidCount} pagos`}
             />
             <Stat
@@ -664,7 +668,8 @@ function ServicesTab() {
   async function save(service: Service) {
     const result = await updateService(service.id, {
       durationMin: Number(duration),
-      price: Number(price.replace(',', '.')),
+      // Em branco = "Sob consulta".
+      price: price.trim() === '' ? null : Number(price.replace(',', '.')),
     })
     if (!result.ok) {
       setError(result.error ?? 'Não foi possível salvar o serviço.')
@@ -696,7 +701,7 @@ function ServicesTab() {
     if (!base) return
     const result = await updateService(service.id, {
       durationMin: base.durationMin,
-      price: base.price,
+      price: base.price ?? null,
       active: true,
     })
     if (!result.ok) {
@@ -781,6 +786,7 @@ function ServicesTab() {
                                 className="field-input"
                                 inputMode="decimal"
                                 value={price}
+                                placeholder="Sob consulta"
                                 onChange={(event) => setPrice(event.target.value)}
                                 aria-label={`Preço de ${service.name}`}
                               />
@@ -814,7 +820,7 @@ function ServicesTab() {
                             onClick={() => {
                               setEditingId(service.id)
                               setDuration(String(service.durationMin))
-                              setPrice(String(service.price))
+                              setPrice(service.price == null ? '' : String(service.price))
                               setError(null)
                               setMessage(null)
                             }}

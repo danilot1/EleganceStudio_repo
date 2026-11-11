@@ -143,6 +143,14 @@ export function Services() {
       </section>
 
       <section className="card space-y-2">
+        <p className="eyebrow">Como funciona o atendimento</p>
+        <p className="text-[12px] text-ink-muted">
+          Os atendimentos são realizados via agendamento. Para quem vier ao estúdio sem
+          agendamento, é preciso verificar a disponibilidade no local.
+        </p>
+      </section>
+
+      <section className="card space-y-2">
         <p className="eyebrow">Formas de pagamento aceitas</p>
         <p className="text-[12px] text-ink-muted">
           Aceitamos débito, crédito, dinheiro e PIX. O pagamento é feito no local, ao final do

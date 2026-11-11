@@ -3,7 +3,7 @@
  * Derivados das telas do protótipo (Home, Serviços, Agendamento, Meus Agendamentos, Painel).
  */
 
-export type CategoryId = 'cabelos' | 'maos-pes' | 'podologia' | 'estetica'
+export type CategoryId = 'maos-pes' | 'podologia' | 'depilacao'
 
 export interface Category {
   id: CategoryId | 'todos'
@@ -29,12 +29,8 @@ export interface Service {
   categoryId: CategoryId
   professionalId: string
   durationMin: number
-  price: number
-  /**
-   * true quando o preço não aparece em nenhuma tela do protótipo e foi estimado.
-   * Ver STATUS.md.
-   */
-  priceEstimated?: boolean
+  /** Ausente = "Sob consulta": o folheto não traz valores; a gestão pode definir no painel. */
+  price?: number
   description: string
   featured?: boolean
   /** Aviso extra exibido abaixo do serviço (ex.: protocolo estéril). */
@@ -84,7 +80,8 @@ export interface Appointment {
   /** Início em minutos desde 00:00 (ex.: 10:00 = 600). */
   startMin: number
   durationMin: number
-  price: number
+  /** Valor registrado no agendamento; ausente quando o serviço é "Sob consulta". */
+  price?: number
   status: AppointmentStatus
   payment: PaymentStatus
   paymentMethod?: PaymentMethod

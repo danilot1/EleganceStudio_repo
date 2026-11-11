@@ -1,6 +1,7 @@
 import type { Appointment, User } from './types'
 import type { OutgoingMail } from './notifications'
 import { addDaysISO, daysBetween, todayISO } from './dates'
+import { SERVICES } from '../data/catalog'
 
 /**
  * Persistência local do protótipo.
@@ -23,7 +24,8 @@ export const DATABASE_STORAGE_KEY = STORAGE_KEY
  */
 export interface ServiceOverride {
   durationMin?: number
-  price?: number
+  /** `null` = a gestão voltou o serviço para "Sob consulta". */
+  price?: number | null
   active?: boolean
 }
 
@@ -75,18 +77,17 @@ function seedUsers(): User[] {
 }
 
 function seedAppointments(today: string): Appointment[] {
+  // Sem `price`: o catálogo do folheto não tem valores, então a demonstração também não.
   return [
     // ---------------------------------------------------------- agenda de HOJE (Painel)
     {
       id: 'apt-hoje-1',
       clientName: 'Renata Álvares',
-      serviceId: 'hidratacao-profunda',
-      title: 'Tratamento Cronograma Capilar VIP',
-      professionalId: 'camila',
+      serviceId: 'olho-de-peixe',
+      professionalId: 'simone',
       dateISO: today,
       startMin: 8 * 60,
       durationMin: 45,
-      price: 180,
       status: 'concluido',
       payment: 'pago',
       paymentMethod: 'pix',
@@ -96,13 +97,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-2',
       clientName: 'Isabela Fontes',
-      serviceId: 'mechas-luzes',
-      title: 'Balayage Champagne + Gloss',
-      professionalId: 'camila',
+      serviceId: 'hidratacao-podal-ozonio',
+      professionalId: 'simone',
       dateISO: today,
       startMin: 9 * 60,
-      durationMin: 60,
-      price: 480,
+      durationMin: 40,
       status: 'em-atendimento',
       payment: 'pago-no-local',
       origin: 'app',
@@ -112,13 +111,11 @@ function seedAppointments(today: string): Appointment[] {
       id: 'apt-hoje-3',
       clientName: 'Mariana Silveira',
       clientUserId: 'user-mariana',
-      serviceId: 'corte-visagismo',
-      title: 'Corte Bordado & Escova Modelada',
-      professionalId: 'juliana',
+      serviceId: 'esmaltacao-esfoliacao-pe-mao',
+      professionalId: 'cris',
       dateISO: today,
       startMin: 10 * 60 + 30,
-      durationMin: 45,
-      price: 210,
+      durationMin: 75,
       status: 'confirmado',
       payment: 'pago-no-local',
       origin: 'app',
@@ -127,13 +124,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-4',
       clientName: 'Clara Mendonça',
-      serviceId: 'design-sobrancelha',
-      title: 'Design Sobrancelhas + Lash Lifting',
+      serviceId: 'depilacao-feminina-meia-perna',
       professionalId: 'beatriz',
       dateISO: today,
       startMin: 11 * 60 + 15,
-      durationMin: 90,
-      price: 290,
+      durationMin: 30,
       status: 'confirmado',
       payment: 'pago-no-local',
       origin: 'app',
@@ -142,12 +137,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-5',
       clientName: 'Fernanda Uchôa',
-      serviceId: 'escova-modeladora',
+      serviceId: 'esmaltacao-pe-mao',
       professionalId: 'cris',
       dateISO: today,
       startMin: 9 * 60 + 30,
-      durationMin: 45,
-      price: 130,
+      durationMin: 40,
       status: 'concluido',
       payment: 'pago',
       paymentMethod: 'debito',
@@ -157,12 +151,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-6',
       clientName: 'Priscila Nunes',
-      serviceId: 'manicure-classica',
+      serviceId: 'mao',
       professionalId: 'cris',
       dateISO: today,
-      startMin: 11 * 60,
+      startMin: 13 * 60,
       durationMin: 40,
-      price: 75,
       status: 'concluido',
       payment: 'pago',
       paymentMethod: 'dinheiro',
@@ -172,12 +165,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-7',
       clientName: 'Antônio Vieira',
-      serviceId: 'podologia-completa',
+      serviceId: 'podologia-procedimento-basico',
       professionalId: 'simone',
       dateISO: today,
       startMin: 10 * 60,
       durationMin: 60,
-      price: 220,
       status: 'concluido',
       payment: 'pago',
       paymentMethod: 'credito',
@@ -187,12 +179,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-8',
       clientName: 'Lúcia Ramos',
-      serviceId: 'combo-pes-mao',
+      serviceId: 'unha-encravada',
       professionalId: 'simone',
       dateISO: today,
       startMin: 13 * 60 + 30,
-      durationMin: 75,
-      price: 150,
+      durationMin: 60,
       status: 'confirmado',
       payment: 'pago-no-local',
       origin: 'app',
@@ -201,12 +192,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-9',
       clientName: 'Bianca Teles',
-      serviceId: 'mechas-luzes',
-      professionalId: 'juliana',
+      serviceId: 'micose-laser',
+      professionalId: 'simone',
       dateISO: today,
-      startMin: 13 * 60,
-      durationMin: 150,
-      price: 390,
+      startMin: 15 * 60,
+      durationMin: 40,
       status: 'confirmado',
       payment: 'pago-no-local',
       origin: 'app',
@@ -215,12 +205,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-10',
       clientName: 'Sabrina Lopes',
-      serviceId: 'limpeza-pele-led',
+      serviceId: 'depilacao-feminina-axila',
       professionalId: 'beatriz',
       dateISO: today,
       startMin: 14 * 60 + 30,
-      durationMin: 60,
-      price: 210,
+      durationMin: 15,
       status: 'aguardando',
       payment: 'pago-no-local',
       origin: 'app',
@@ -229,13 +218,11 @@ function seedAppointments(today: string): Appointment[] {
     {
       id: 'apt-hoje-11',
       clientName: 'Helena Bustos',
-      serviceId: 'manicure-classica',
-      title: 'Manicure Express (Reaberto na grade)',
-      professionalId: 'camila',
+      serviceId: 'mao',
+      professionalId: 'cris',
       dateISO: today,
       startMin: 14 * 60,
-      durationMin: 30,
-      price: 75,
+      durationMin: 40,
       status: 'cancelado',
       payment: 'pendente',
       origin: 'app',
@@ -247,12 +234,11 @@ function seedAppointments(today: string): Appointment[] {
       // Existe para o indicador de no-show do painel mostrar um valor real (não fixo).
       id: 'apt-hoje-12',
       clientName: 'Paula Andrade',
-      serviceId: 'design-sobrancelha',
+      serviceId: 'depilacao-feminina-sobrancelha',
       professionalId: 'beatriz',
       dateISO: today,
       startMin: 9 * 60,
-      durationMin: 35,
-      price: 70,
+      durationMin: 20,
       status: 'faltou',
       payment: 'pendente',
       origin: 'app',
@@ -260,15 +246,27 @@ function seedAppointments(today: string): Appointment[] {
       seeded: true,
     },
     {
+      id: 'apt-hoje-13',
+      clientName: 'Rodrigo Pires',
+      serviceId: 'depilacao-masculina-torax',
+      professionalId: 'beatriz',
+      dateISO: today,
+      startMin: 15 * 60 + 30,
+      durationMin: 30,
+      status: 'confirmado',
+      payment: 'pago-no-local',
+      origin: 'app',
+      seeded: true,
+    },
+    {
       // Falta de outro dia da semana, para a taxa do período não ficar só no dia de hoje.
       id: 'apt-falta-semana',
       clientName: 'Tereza Coelho',
-      serviceId: 'podologia-completa',
+      serviceId: 'podologia-procedimento-basico',
       professionalId: 'simone',
       dateISO: addDaysISO(today, -3),
       startMin: 16 * 60,
       durationMin: 60,
-      price: 220,
       status: 'faltou',
       payment: 'pendente',
       origin: 'app',
@@ -281,12 +279,11 @@ function seedAppointments(today: string): Appointment[] {
       id: 'apt-mariana-1',
       clientName: 'Mariana Silveira',
       clientUserId: 'user-mariana',
-      serviceId: 'corte-visagismo',
-      professionalId: 'camila',
+      serviceId: 'spa-dos-pes',
+      professionalId: 'cris',
       dateISO: addDaysISO(today, 2),
       startMin: 14 * 60 + 30,
-      durationMin: 75,
-      price: 180,
+      durationMin: 60,
       status: 'confirmado',
       payment: 'pago-no-local',
       origin: 'app',
@@ -296,12 +293,11 @@ function seedAppointments(today: string): Appointment[] {
       id: 'apt-mariana-2',
       clientName: 'Mariana Silveira',
       clientUserId: 'user-mariana',
-      serviceId: 'limpeza-pele-led',
+      serviceId: 'depilacao-feminina-sobrancelha',
       professionalId: 'beatriz',
       dateISO: addDaysISO(today, 8),
       startMin: 16 * 60,
-      durationMin: 60,
-      price: 210,
+      durationMin: 20,
       status: 'aguardando',
       payment: 'pago-no-local',
       origin: 'app',
@@ -313,12 +309,11 @@ function seedAppointments(today: string): Appointment[] {
       id: 'apt-his-1',
       clientName: 'Mariana Silveira',
       clientUserId: 'user-mariana',
-      serviceId: 'corte-visagismo',
-      professionalId: 'camila',
+      serviceId: 'mao',
+      professionalId: 'cris',
       dateISO: addDaysISO(today, -18),
       startMin: 15 * 60,
-      durationMin: 50,
-      price: 180,
+      durationMin: 40,
       status: 'concluido',
       payment: 'pago',
       paymentMethod: 'pix',
@@ -329,12 +324,11 @@ function seedAppointments(today: string): Appointment[] {
       id: 'apt-his-2',
       clientName: 'Mariana Silveira',
       clientUserId: 'user-mariana',
-      serviceId: 'manicure-classica',
+      serviceId: 'esmaltacao-pe-mao',
       professionalId: 'cris',
       dateISO: addDaysISO(today, -32),
       startMin: 10 * 60,
       durationMin: 40,
-      price: 75,
       status: 'concluido',
       payment: 'pago',
       paymentMethod: 'dinheiro',
@@ -345,12 +339,11 @@ function seedAppointments(today: string): Appointment[] {
       id: 'apt-his-3',
       clientName: 'Mariana Silveira',
       clientUserId: 'user-mariana',
-      serviceId: 'limpeza-pele-led',
+      serviceId: 'depilacao-feminina-axila',
       professionalId: 'beatriz',
       dateISO: addDaysISO(today, -46),
       startMin: 17 * 60,
-      durationMin: 60,
-      price: 210,
+      durationMin: 15,
       status: 'concluido',
       payment: 'pago',
       paymentMethod: 'credito',
@@ -361,12 +354,11 @@ function seedAppointments(today: string): Appointment[] {
       id: 'apt-his-4',
       clientName: 'Mariana Silveira',
       clientUserId: 'user-mariana',
-      serviceId: 'hidratacao-profunda',
+      serviceId: 'esfoliacao-pe-mao',
       professionalId: 'cris',
       dateISO: addDaysISO(today, -61),
       startMin: 11 * 60 + 30,
-      durationMin: 50,
-      price: 160,
+      durationMin: 40,
       status: 'cancelado',
       payment: 'pendente',
       origin: 'app',
@@ -376,12 +368,11 @@ function seedAppointments(today: string): Appointment[] {
       id: 'apt-his-5',
       clientName: 'Mariana Silveira',
       clientUserId: 'user-mariana',
-      serviceId: 'podologia-completa',
+      serviceId: 'podologia-procedimento-basico',
       professionalId: 'simone',
       dateISO: addDaysISO(today, -75),
       startMin: 9 * 60,
       durationMin: 60,
-      price: 220,
       status: 'concluido',
       payment: 'pago',
       paymentMethod: 'pix',
@@ -427,6 +418,17 @@ function readFromStorage(): Database | null {
     const parsed = JSON.parse(raw) as Database
     if (parsed.version !== 1 || !Array.isArray(parsed.users) || !Array.isArray(parsed.appointments)) {
       return null
+    }
+    // Demonstração gravada antes da troca do catálogo: os exemplos citam serviços que
+    // não existem mais. Só os exemplos (`seeded`) são refeitos; o que a pessoa criou fica.
+    const known = new Set(SERVICES.map((service) => service.id))
+    if (parsed.appointments.some((item) => item.seeded && !known.has(item.serviceId))) {
+      const today = todayISO()
+      parsed.seedDateISO = today
+      parsed.appointments = [
+        ...seedAppointments(today),
+        ...parsed.appointments.filter((item) => !item.seeded),
+      ]
     }
     // Banco gravado antes da gestão de serviços: completa o campo em vez de descartar.
     return {

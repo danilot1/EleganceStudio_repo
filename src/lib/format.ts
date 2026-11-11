@@ -3,9 +3,14 @@ const currency = new Intl.NumberFormat('pt-BR', {
   currency: 'BRL',
 })
 
-/** R$ 180,00 */
-export function formatBRL(value: number): string {
-  return currency.format(value)
+/** Texto mostrado quando o serviço ainda não tem valor definido pela gestão. */
+export const PRICE_ON_REQUEST = 'Sob consulta'
+
+/** R$ 180,00 — ou "Sob consulta" quando não há valor. */
+export function formatBRL(value: number | undefined | null): string {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? currency.format(value)
+    : PRICE_ON_REQUEST
 }
 
 /** Máscara de telefone brasileiro usada no cadastro: (11) 98765-4321 */

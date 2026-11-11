@@ -17,10 +17,9 @@ import { Avatar, DemoNotice, StatusBadge, SuccessNote, cx } from './ui'
 
 /** Rótulo de área usado nos cards do cliente (diferente dos filtros do catálogo). */
 const CATEGORY_LABEL: Record<CategoryId, string> = {
-  cabelos: 'Cabelo & Estilo',
   'maos-pes': 'Mãos & Pés',
   podologia: 'Podologia',
-  estetica: 'Estética Facial',
+  depilacao: 'Depilação',
 }
 
 export function AppointmentCard({

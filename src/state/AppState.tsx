@@ -115,10 +115,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   // disponibilidade consistentes no agendamento, na agenda e no painel.
   const allServices = useMemo<Service[]>(
     () =>
-      SERVICES.map((service) => ({
-        ...service,
-        ...db.serviceOverrides[service.id],
-      })),
+      SERVICES.map((service) => {
+        const { price, ...override } = db.serviceOverrides[service.id] ?? {}
+        return {
+          ...service,
+          ...override,
+          // `null` no ajuste = a gestão voltou o serviço para "Sob consulta".
+          price: price === null ? undefined : (price ?? service.price),
+        }
+      }),
     [db.serviceOverrides],
   )
   const services = useMemo(

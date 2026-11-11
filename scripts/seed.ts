@@ -117,7 +117,7 @@ async function readAppointments(db: Firestore): Promise<Appointment[]> {
         dateISO: String(data.dateISO ?? ''),
         startMin: Number(data.startMin ?? 0),
         durationMin: Number(data.durationMin ?? 0),
-        price: Number(data.price ?? 0),
+        price: data.price == null ? undefined : Number(data.price),
         status: (data.status as Appointment['status']) ?? 'aguardando',
         payment: (data.payment as Appointment['payment']) ?? 'pendente',
         origin: data.origin === 'balcao' ? 'balcao' : 'app',
@@ -216,7 +216,8 @@ async function seedDemo(db: Firestore): Promise<void> {
         dateISO: item.dateISO,
         startMin: item.startMin,
         durationMin: item.durationMin,
-        price: item.price,
+        // Sem valor = "Sob consulta"; o Firestore não aceita `undefined`.
+        price: item.price ?? null,
         status: item.status,
         payment: item.payment,
         paymentMethod: item.paymentMethod ?? null,
