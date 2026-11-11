@@ -58,7 +58,7 @@ erro é exatamente `Failed to authenticate, have you run firebase login?` — é
 
 1. Criar o projeto, habilitar Authentication (e-mail/senha) e Firestore em modo produção.
 2. Registrar o app Web e preencher o `.env` (`VITE_FIREBASE_*`).
-3. `npx firebase login` — o projeto já está vinculado (`.firebaserc` → `elegancestudiodb`).
+3. `npx firebase login` — o projeto já está vinculado (`.firebaserc` → `salao-de-beleza-bf03e`).
 4. `npm run deploy:rules` e `npm run deploy:app` (ou `npm run deploy:all`).
 5. Criar a primeira conta de gestão pela tela e promover no console — ver
    [[autenticacao-e-papeis]].
