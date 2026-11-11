@@ -9,7 +9,6 @@ import {
   relativeDayLabel,
   shortDateLabel,
 } from '../lib/dates'
-import { formatBRL } from '../lib/format'
 import { PAYMENT_LABEL, type Appointment, type CategoryId } from '../lib/types'
 import { useAppState } from '../state/AppState'
 import { SlotPicker } from './SlotPicker'
@@ -17,9 +16,10 @@ import { Avatar, DemoNotice, StatusBadge, SuccessNote, cx } from './ui'
 
 /** Rótulo de área usado nos cards do cliente (diferente dos filtros do catálogo). */
 const CATEGORY_LABEL: Record<CategoryId, string> = {
-  'maos-pes': 'Mãos & Pés',
   podologia: 'Podologia',
+  'maos-pes': 'Mão e Pé',
   depilacao: 'Depilação',
+  cabelos: 'Cabeleireiro',
 }
 
 export function AppointmentCard({
@@ -159,10 +159,7 @@ export function AppointmentCard({
           ) : null}
 
           <div className="flex items-center justify-between gap-3 rounded-[14px] border border-line bg-surface-2 p-3">
-            <div>
-              <p className="eyebrow">Valor Estimado</p>
-              <p className="font-display text-[20px] text-ink">{formatBRL(appointment.price)}</p>
-            </div>
+            <p className="eyebrow">Pagamento</p>
             <p className="text-right text-[11px] leading-snug text-ink-muted">
               {appointment.status === 'faltou'
                 ? 'Cliente não compareceu'
@@ -190,7 +187,6 @@ export function AppointmentCard({
               ) : null}
               <span className="text-[12px] text-ink-soft">{professional?.name}</span>
             </div>
-            <span className="text-[14px] font-semibold text-ink">{formatBRL(appointment.price)}</span>
           </div>
         </>
       )}

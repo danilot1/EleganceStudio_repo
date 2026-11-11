@@ -18,7 +18,6 @@ import { Link } from 'react-router-dom'
 import { FeaturedServiceCard, ServiceRowCard } from '../components/cards'
 import { DemoNotice, Eyebrow, InfoNote, Photo, SectionHeading, Stat, cx } from '../components/ui'
 import { POPULAR_SERVICE_IDS } from '../data/catalog'
-import { formatBRL } from '../lib/format'
 import type { CategoryId } from '../lib/types'
 import { useAppState } from '../state/AppState'
 
@@ -29,9 +28,10 @@ const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURICom
 /** Chips de destaque da Home (rótulos do protótipo). */
 const HOME_FILTERS: Array<{ label: string; categories: CategoryId[] | null }> = [
   { label: 'Todos', categories: null },
-  { label: 'Mãos & Pés', categories: ['maos-pes'] },
   { label: 'Podologia', categories: ['podologia'] },
+  { label: 'Mão e Pé', categories: ['maos-pes'] },
   { label: 'Depilação', categories: ['depilacao'] },
+  { label: 'Cabeleireiro', categories: ['cabelos'] },
 ]
 
 /** Horário de funcionamento do estúdio, usado no selo "Aberto agora". */
@@ -48,6 +48,7 @@ const CATEGORY_IMAGE: Record<CategoryId, string> = {
   'maos-pes': 'homeServiceNails',
   podologia: 'homeServicePedicure',
   depilacao: 'homeServiceBrows',
+  cabelos: 'homeServiceHair',
 }
 const SERVICE_IMAGE: Record<string, string> = {
   pe: 'homeServicePedicure',
@@ -58,14 +59,6 @@ export function Home() {
   const { services, session } = useAppState()
   const [activeFilter, setActiveFilter] = useState(0)
   const [contactNotice, setContactNotice] = useState(false)
-
-  // Sem nenhum preço definido pela gestão, a Home não anuncia valor.
-  const lowestPrice = useMemo(() => {
-    const prices = services
-      .map((service) => service.price)
-      .filter((price): price is number => typeof price === 'number')
-    return prices.length ? Math.min(...prices) : undefined
-  }, [services])
 
   const popular = useMemo(
     () =>
@@ -190,7 +183,7 @@ export function Home() {
           estações equipadas com aromaterapia botânica.
         </p>
         <div className="h-44 overflow-hidden rounded-[16px] border border-line">
-          <Photo imageKey="homeLounge" alt="Sala de espera do estúdio" caption="Foto do protótipo" />
+          <Photo imageKey="homeLounge" alt="Sala de podologia do EleganceStudio" />
         </div>
         <div className="space-y-1.5 rounded-[16px] border border-line bg-surface-2 p-3">
           <p className="flex gap-0.5 text-gold" aria-label="5 de 5 estrelas">
@@ -273,7 +266,6 @@ export function Home() {
       <section className="space-y-2 text-center">
         <InfoNote icon={Sparkles} title="EleganceStudio">
           Seu refúgio de beleza e cuidado premium.
-          {lowestPrice === undefined ? null : ` Serviços a partir de ${formatBRL(lowestPrice)}.`}
         </InfoNote>
         <Link
           to="/servicos"

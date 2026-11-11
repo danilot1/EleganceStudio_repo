@@ -13,7 +13,6 @@ import {
 import { useState } from 'react'
 import { findProfessional, findService } from '../data/catalog'
 import { durationLabel, minutesToTime, shortDateLabel } from '../lib/dates'
-import { formatBRL } from '../lib/format'
 import { canRegisterNoShow } from '../lib/noShow'
 import { buildMail } from '../lib/notifications'
 import { PAYMENT_LABEL, type Appointment, type PaymentMethod } from '../lib/types'
@@ -75,8 +74,6 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
         </h3>
         <p className="text-[13px] text-ink-soft">
           {title}
-          <span className="px-1.5 text-ink-muted">•</span>
-          <span className="font-semibold">{formatBRL(appointment.price)}</span>
         </p>
         <p className="flex items-center gap-1.5 text-[11px] text-ink-muted">
           <Avatar
@@ -328,7 +325,6 @@ export function TimelineCard({ appointment }: { appointment: Appointment }) {
                   dateISO: appointment.dateISO,
                   startMin: appointment.startMin,
                   durationMin: appointment.durationMin,
-                  price: appointment.price,
                   clientName: name,
                   status: 'confirmado',
                   origin: 'balcao',

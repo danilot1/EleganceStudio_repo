@@ -1,7 +1,6 @@
 import { Clock, Search, Star } from 'lucide-react'
-import { findProfessional, professionalLabel, type ServiceGroup } from '../data/catalog'
+import { namesLabel, professionalsFor, type ServiceGroup } from '../data/catalog'
 import { durationLabel } from '../lib/dates'
-import { formatBRL } from '../lib/format'
 import type { Professional, Service } from '../lib/types'
 import { useStartBooking } from '../state/BookingContext'
 import { Avatar, Photo, cx } from './ui'
@@ -27,12 +26,13 @@ export function FeaturedServiceCard({
       </div>
       <div className="space-y-2 p-4">
         <h3 className="text-[20px] leading-tight text-ink">{service.name}</h3>
-        <p className="text-[12px] leading-relaxed text-ink-muted">{service.description}</p>
-        <div className="flex items-end justify-between gap-3 pt-1">
-          <div>
-            <p className="eyebrow">Valor</p>
-            <p className="font-display text-[20px] text-ink">{formatBRL(service.price)}</p>
-          </div>
+        {service.description ? (
+          <p className="text-[12px] leading-relaxed text-ink-muted">{service.description}</p>
+        ) : null}
+        <p className="text-[12px] text-ink-muted">
+          Com {namesLabel(professionalsFor(service.categoryId))}
+        </p>
+        <div className="flex items-end justify-end gap-3 pt-1">
           <button
             type="button"
             className="btn-primary btn-sm"
@@ -80,11 +80,10 @@ export function ServiceRowCard({
             <Clock className="size-3" aria-hidden />
             {durationLabel(service.durationMin)}
             <span className="px-0.5">•</span>
-            {professionalLabel(service.professionalId)}
+            {namesLabel(professionalsFor(service.categoryId))}
           </p>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] font-semibold text-ink">{formatBRL(service.price)}</span>
+        <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             className="btn-ghost btn-sm"
@@ -116,12 +115,14 @@ export function CatalogServiceRow({
             <span className="badge bg-gold-tint text-gold">Destaque</span>
           ) : null}
         </div>
-        <p className="text-[12px] leading-relaxed text-ink-muted">{service.description}</p>
+        {service.description ? (
+          <p className="text-[12px] leading-relaxed text-ink-muted">{service.description}</p>
+        ) : null}
         {service.note ? (
           <p className="text-[11px] font-medium text-gold">{service.note}</p>
         ) : null}
         <p className="eyebrow pt-0.5">
-          {group.professionalId ? `Por ${professionalLabel(group.professionalId)}` : group.studioLabel}
+          Com {namesLabel(professionalsFor(group.categoryId))}
         </p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
@@ -129,7 +130,6 @@ export function CatalogServiceRow({
           <Clock className="size-3" aria-hidden />
           {durationLabel(service.durationMin)}
         </span>
-        <span className="text-[13px] font-semibold text-ink">{formatBRL(service.price)}</span>
         <button type="button" className="btn-primary btn-sm" onClick={() => startBooking(service.id)}>
           <Search className="size-3" aria-hidden />
           Agendar
@@ -159,11 +159,13 @@ export function ProfessionalCard({
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-semibold text-ink">{professional.name}</p>
         <p className="truncate text-[12px] text-ink-muted">{professional.role}</p>
-        <p className="mt-1 flex items-center gap-1 text-[11px] text-gold">
-          <Star className="size-3 fill-current" aria-hidden />
-          {professional.rating.toFixed(1)}
-          <span className="text-ink-muted">({professional.reviews} avaliações)</span>
-        </p>
+        {professional.rating !== undefined ? (
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-gold">
+            <Star className="size-3 fill-current" aria-hidden />
+            {professional.rating.toFixed(1)}
+            <span className="text-ink-muted">({professional.reviews ?? 0} avaliações)</span>
+          </p>
+        ) : null}
       </div>
     </>
   )
@@ -190,6 +192,4 @@ export function ProfessionalCard({
   )
 }
 
-export function professionalOf(service: Service): Professional | undefined {
-  return findProfessional(service.professionalId)
-}
+

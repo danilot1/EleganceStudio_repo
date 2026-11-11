@@ -3,7 +3,7 @@
  * Derivados das telas do protótipo (Home, Serviços, Agendamento, Meus Agendamentos, Painel).
  */
 
-export type CategoryId = 'maos-pes' | 'podologia' | 'depilacao'
+export type CategoryId = 'podologia' | 'maos-pes' | 'depilacao' | 'cabelos'
 
 export interface Category {
   id: CategoryId | 'todos'
@@ -14,9 +14,12 @@ export interface Professional {
   id: string
   name: string
   role: string
+  /** Categorias que a profissional atende: só elas aparecem no agendamento. */
+  categories: CategoryId[]
   specialties: string[]
-  rating: number
-  reviews: number
+  /** Avaliação exibida no card; ausente = o card não mostra estrelas. */
+  rating?: number
+  reviews?: number
   chair?: string
   /** Tom usado no avatar quando não há foto (o protótipo usa fotos). */
   accent: string
@@ -27,11 +30,9 @@ export interface Service {
   name: string
   groupId: string
   categoryId: CategoryId
-  professionalId: string
   durationMin: number
-  /** Ausente = "Sob consulta": o folheto não traz valores; a gestão pode definir no painel. */
-  price?: number
-  description: string
+  /** Opcional: o catálogo atual lista só o nome do serviço. */
+  description?: string
   featured?: boolean
   /** Aviso extra exibido abaixo do serviço (ex.: protocolo estéril). */
   note?: string
@@ -80,8 +81,6 @@ export interface Appointment {
   /** Início em minutos desde 00:00 (ex.: 10:00 = 600). */
   startMin: number
   durationMin: number
-  /** Valor registrado no agendamento; ausente quando o serviço é "Sob consulta". */
-  price?: number
   status: AppointmentStatus
   payment: PaymentStatus
   paymentMethod?: PaymentMethod

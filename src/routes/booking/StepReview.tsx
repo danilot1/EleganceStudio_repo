@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { FieldError, InfoNote } from '../../components/ui'
 import { findProfessional } from '../../data/catalog'
 import { durationLabel } from '../../lib/dates'
-import { formatBRL, isValidEmail } from '../../lib/format'
+import { isValidEmail } from '../../lib/format'
 import { buildMail } from '../../lib/notifications'
 import { useAppState } from '../../state/AppState'
 import { useBooking } from '../../state/BookingContext'
@@ -46,12 +46,8 @@ export function StepReview() {
           startMin={draft.startMin!}
           durationMin={service!.durationMin}
         />
-        <div className="flex items-center justify-between border-t border-line pt-3">
-          <div>
-            <p className="eyebrow">Valor total</p>
-            <p className="font-display text-[22px] text-ink">{formatBRL(service!.price)}</p>
-          </div>
-          <p className="text-right text-[11px] leading-snug text-ink-muted">
+        <div className="border-t border-line pt-3">
+          <p className="text-[11px] leading-snug text-ink-muted">
             {durationLabel(service!.durationMin)}
             <br />
             Pagamento no local
@@ -159,7 +155,6 @@ export function StepReview() {
             dateISO: draft.dateISO!,
             startMin: draft.startMin!,
             durationMin: service!.durationMin,
-            price: service!.price,
             clientName: name,
             clientNote: note,
             clientEmail: cleanEmail || undefined,

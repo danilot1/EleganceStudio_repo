@@ -111,19 +111,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => readSession())
 
   // O catálogo base é `data/catalog.ts`; a gestão só grava ajustes por serviço. Derivar
-  // a lista aqui (em vez de espalhar condições pelas telas) mantém preço, duração e
+  // a lista aqui (em vez de espalhar condições pelas telas) mantém duração e
   // disponibilidade consistentes no agendamento, na agenda e no painel.
   const allServices = useMemo<Service[]>(
     () =>
-      SERVICES.map((service) => {
-        const { price, ...override } = db.serviceOverrides[service.id] ?? {}
-        return {
-          ...service,
-          ...override,
-          // `null` no ajuste = a gestão voltou o serviço para "Sob consulta".
-          price: price === null ? undefined : (price ?? service.price),
-        }
-      }),
+      SERVICES.map((service) => ({
+        ...service,
+        ...db.serviceOverrides[service.id],
+      })),
     [db.serviceOverrides],
   )
   const services = useMemo(

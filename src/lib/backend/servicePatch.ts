@@ -19,11 +19,6 @@ export function validateServicePatch(patch: ServicePatch): string | null {
     }
   }
 
-  if (patch.price !== undefined && patch.price !== null) {
-    if (!Number.isFinite(patch.price) || patch.price < 0 || patch.price > 5000) {
-      return 'O preço precisa ficar entre R$ 0 e R$ 5.000.'
-    }
-  }
 
   return null
 }

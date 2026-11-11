@@ -17,7 +17,6 @@ function appointment(overrides: Partial<Appointment> = {}): Appointment {
     dateISO: '2026-11-10',
     startMin: 14 * 60 + 30,
     durationMin: 45,
-    price: 180,
     status: 'aguardando',
     payment: 'pendente',
     origin: 'app',
@@ -38,20 +37,10 @@ describe('avisos por e-mail', () => {
     expect(mail.text).toContain('Procedimento básico') // nome do serviço do catálogo
     expect(mail.text).toContain('Simone')
     expect(mail.text).toContain('14:30')
-    expect(mail.text).toContain('R$')
+    expect(mail.text).toContain('Pagamento no local')
+    expect(mail.text).not.toContain('R$')
     expect(mail.to).toBe('mariana@exemplo.com')
     expect(mail.appointmentId).toBe('apt-1')
-  })
-
-  it('diz "Sob consulta" quando o atendimento não tem valor', () => {
-    const mail = buildMail({
-      kind: 'confirmacao',
-      appointment: appointment({ price: undefined }),
-      to: 'mariana@exemplo.com',
-    })
-
-    expect(mail.text).toContain('Sob consulta')
-    expect(mail.text).not.toContain('R$')
   })
 
   it('usa o nome livre do atendimento de balcão, quando existe', () => {

@@ -37,11 +37,11 @@ function weekdayISO(days: number): string {
 }
 
 const BASE_INPUT = {
-  serviceId: 'podologia-procedimento-basico',
+  // Mão e Pé: atendido por Simone e Cris.
+  serviceId: 'mao',
   professionalId: 'simone',
   startMin: 16 * 60,
   durationMin: 30,
-  price: 120,
   clientName: 'Cliente de Teste',
   status: 'confirmado' as const,
   origin: 'balcao' as const,
@@ -172,7 +172,7 @@ describe('conflito de horários', () => {
     await act(async () => {
       b = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'beatriz',
+        professionalId: 'simone',
         dateISO,
         startMin: 10 * 60,
         durationMin: 60,
@@ -181,6 +181,31 @@ describe('conflito de horários', () => {
 
     expect(a?.ok).toBe(true)
     expect(b?.ok).toBe(true)
+  })
+
+  it('recusa profissional que não atende a categoria do serviço', async () => {
+    const { result } = renderState()
+    let outcome: Created | undefined
+    await act(async () => {
+      // Claudia é cabeleireira: não faz Mão e Pé.
+      outcome = await result.current.createAppointment({
+        ...BASE_INPUT,
+        professionalId: 'claudia',
+        dateISO: weekdayISO(6),
+      })
+    })
+    expect(outcome?.ok).toBe(false)
+    expect(outcome?.error).toMatch(/não realiza este serviço/)
+
+    await act(async () => {
+      outcome = await result.current.createAppointment({
+        ...BASE_INPUT,
+        serviceId: 'corte',
+        professionalId: 'claudia',
+        dateISO: weekdayISO(6),
+      })
+    })
+    expect(outcome?.ok).toBe(true)
   })
 
   it('recusa atendimento que terminaria depois do fechamento', async () => {
@@ -215,7 +240,7 @@ describe('avisos por e-mail', () => {
     await act(async () => {
       created = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'beatriz',
+        professionalId: 'simone',
         dateISO: weekdayISO(6),
         startMin: 17 * 60,
         clientName: 'Convidada Sem Conta',
@@ -239,7 +264,7 @@ describe('avisos por e-mail', () => {
     await act(async () => {
       created = await result.current.createAppointment({
         ...BASE_INPUT,
-        professionalId: 'beatriz',
+        professionalId: 'simone',
         dateISO: weekdayISO(6),
         startMin: 17 * 60 + 30,
         clientName: 'Cliente do Lembrete',
@@ -265,39 +290,22 @@ describe('avisos por e-mail', () => {
 })
 
 describe('gestão de serviços', () => {
-  it('aplica duração e preço novos ao catálogo em uso', async () => {
+  it('aplica a duração nova ao catálogo em uso', async () => {
     const { result } = renderState()
 
     let outcome: Awaited<ReturnType<State['updateService']>> | undefined
     await act(async () => {
       outcome = await result.current.updateService('mao', {
         durationMin: 60,
-        price: 90,
       })
     })
 
     expect(outcome?.ok).toBe(true)
     const active = result.current.services.find((item) => item.id === 'mao')
     expect(active?.durationMin).toBe(60)
-    expect(active?.price).toBe(90)
     expect(
       result.current.allServices.find((item) => item.id === 'mao')?.durationMin,
     ).toBe(60)
-  })
-
-  it('preço em branco volta o serviço para "Sob consulta"', async () => {
-    const { result } = renderState()
-    expect(result.current.services.find((item) => item.id === 'mao')?.price).toBeUndefined()
-
-    await act(async () => {
-      await result.current.updateService('mao', { price: 60 })
-    })
-    expect(result.current.services.find((item) => item.id === 'mao')?.price).toBe(60)
-
-    await act(async () => {
-      await result.current.updateService('mao', { price: null })
-    })
-    expect(result.current.services.find((item) => item.id === 'mao')?.price).toBeUndefined()
   })
 
   it('recusa duração fora do permitido', async () => {

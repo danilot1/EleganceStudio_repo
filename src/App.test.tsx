@@ -203,7 +203,9 @@ describe('fluxo de agendamento', () => {
     await user.click(chooseButtons[0]!)
     expect(await screen.findByText('Etapa 2 de 4')).toBeTruthy()
 
-    // Etapa 2: profissional sugerida
+    // Etapa 2: o destaque é de Mão e Pé, que tem duas profissionais; só elas aparecem.
+    expect(screen.queryByRole('button', { name: /Claudia/ })).toBeNull()
+    await user.click(screen.getByRole('button', { name: /Cris/ }))
     await user.click(screen.getByRole('button', { name: /Ver horários disponíveis/i }))
     // A tela da etapa 3 não usa o rótulo "Etapa 3 de 4" (segue o print), então
     // verificamos pelo título da seção de data.
@@ -271,8 +273,8 @@ describe('gestão do atendimento', () => {
     renderRoute('/painel')
 
     expect(await screen.findByText(/Qualidade do dia/)).toBeTruthy()
-    // 1 falta em 4 atendimentos concluídos + 1 falta = 20% (dados de exemplo do dia).
-    expect(screen.getByText('20% no-show')).toBeTruthy()
+    // 1 falta em 5 atendimentos concluídos + 1 falta = 17% (dados de exemplo do dia).
+    expect(screen.getByText('17% no-show')).toBeTruthy()
 
     const cards = await screen.findAllByRole('article')
     const card = cards.find((item) => /Paula Andrade/.test(item.textContent ?? ''))

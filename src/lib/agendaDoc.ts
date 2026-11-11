@@ -83,7 +83,6 @@ export function busyAppointments(
     dateISO,
     startMin: block.startMin,
     durationMin: block.durationMin,
-    price: 0,
     status: block.status,
     payment: 'pendente',
     origin: 'app',

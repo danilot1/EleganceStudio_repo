@@ -18,10 +18,9 @@ import { RequireRole } from '../../components/guards'
 import { SlotPicker } from '../../components/SlotPicker'
 import { TimelineCard } from '../../components/TimelineCard'
 import { Avatar, DemoNotice, Stat, SuccessNote, cx } from '../../components/ui'
-import { SERVICES, SERVICE_GROUPS } from '../../data/catalog'
+import { SERVICES, SERVICE_GROUPS, canPerform, professionalsForService } from '../../data/catalog'
 import { appointmentsOfDay, occupancyOf, summarizeDay } from '../../lib/agenda'
 import { fullDateLabel, numericDayMonth, todayISO, weekdayDateLabel } from '../../lib/dates'
-import { PRICE_ON_REQUEST, formatBRL } from '../../lib/format'
 import { noShowStats } from '../../lib/noShow'
 import type { Service } from '../../lib/types'
 import { useAppState } from '../../state/AppState'
@@ -111,7 +110,6 @@ function AdminPanel() {
   const active = dayAppointments.filter(
     (appointment) => appointment.status !== 'cancelado' && appointment.status !== 'faltou',
   )
-  const revenue = active.reduce((total, appointment) => total + (appointment.price ?? 0), 0)
   const paidCount = active.filter((appointment) => appointment.payment === 'pago').length
   const cancelled = dayAppointments.filter(
     (appointment) => appointment.status === 'cancelado',
@@ -140,7 +138,6 @@ function AdminPanel() {
           user,
           total: mine.length,
           completed: completed.length,
-          spent: completed.reduce((total, appointment) => total + (appointment.price ?? 0), 0),
           lastISO: completed.map((appointment) => appointment.dateISO).sort().at(-1),
           next: upcoming[0],
         }
@@ -229,7 +226,15 @@ function AdminPanel() {
                 id="new-service"
                 className="field-input"
                 value={newServiceId}
-                onChange={(event) => setNewServiceId(event.target.value)}
+                onChange={(event) => {
+                  const serviceId = event.target.value
+                  setNewServiceId(serviceId)
+                  // Troca de serviço pode sair da categoria da profissional escolhida.
+                  if (!canPerform(newProfessionalId, serviceId)) {
+                    setNewProfessionalId(professionalsForService(serviceId)[0]?.id ?? '')
+                    setNewSlot(null)
+                  }
+                }}
               >
                 {services.map((service) => (
                   <option key={service.id} value={service.id}>
@@ -248,7 +253,7 @@ function AdminPanel() {
                 value={newProfessionalId}
                 onChange={(event) => setNewProfessionalId(event.target.value)}
               >
-                {professionals.map((professional) => (
+                {professionalsForService(newServiceId).map((professional) => (
                   <option key={professional.id} value={professional.id}>
                     {professional.name}
                   </option>
@@ -288,7 +293,6 @@ function AdminPanel() {
                 dateISO: newSlot.dateISO,
                 startMin: newSlot.startMin,
                 durationMin: selectedNewService.durationMin,
-                price: selectedNewService.price,
                 clientName: newName,
                 status: 'confirmado',
                 origin: 'balcao',
@@ -327,13 +331,9 @@ function AdminPanel() {
             />
             <Stat
               icon={TrendingUp}
-              label="Previsto"
-              value={
-                active.some((appointment) => typeof appointment.price === 'number')
-                  ? formatBRL(revenue).replace(/\s/g, ' ')
-                  : PRICE_ON_REQUEST
-              }
-              hint={`${paidCount} pagos`}
+              label="Pagos"
+              value={String(paidCount)}
+              hint={`de ${active.length} atendimento${active.length === 1 ? '' : 's'}`}
             />
             <Stat
               icon={BarChart3}
@@ -359,9 +359,8 @@ function AdminPanel() {
             onViewChange={setView}
             onPickSlot={(professionalId, startMin) => {
               setNewProfessionalId(professionalId)
-              const suggestion = services.find(
-                (service) => service.professionalId === professionalId,
-              )
+              // Primeiro serviço que a profissional atende (categoria dela).
+              const suggestion = services.find((service) => canPerform(professionalId, service.id))
               if (suggestion) setNewServiceId(suggestion.id)
               setNewSlot({ dateISO: selectedDateISO, startMin })
               setNewError(null)
@@ -534,7 +533,7 @@ function AdminPanel() {
           </div>
 
           <div className="space-y-2">
-            {clientRows.map(({ user, total, completed, spent, lastISO, next }) => (
+            {clientRows.map(({ user, total, completed, lastISO, next }) => (
               <article key={user.id} className="card space-y-2">
                 <div className="flex items-start gap-3">
                   <Avatar name={user.name} imageKey="clientAvatar" />
@@ -572,7 +571,6 @@ function AdminPanel() {
                 <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-muted">
                   <span>
                     {pastLabel(lastISO)}
-                    {spent > 0 ? ` • ${formatBRL(spent)} em atendimentos` : ''}
                   </span>
                   {next ? (
                     <span className="font-medium text-gold">
@@ -619,9 +617,11 @@ function AdminPanel() {
                       <p className="text-[15px] font-semibold text-ink">{professional.name}</p>
                       <p className="text-[12px] text-ink-muted">{professional.role}</p>
                     </div>
-                    <span className="badge bg-gold-tint text-gold">
-                      {professional.rating.toFixed(1)} ★
-                    </span>
+                    {professional.rating !== undefined ? (
+                      <span className="badge bg-gold-tint text-gold">
+                        {professional.rating.toFixed(1)} ★
+                      </span>
+                    ) : null}
                   </div>
                   <p className="flex flex-wrap gap-1.5">
                     {professional.specialties.map((specialty) => (
@@ -651,7 +651,7 @@ function AdminPanel() {
 }
 
 /**
- * Aba Serviços: a gestão ajusta duração, preço e disponibilidade de cada procedimento.
+ * Aba Serviços: a gestão ajusta duração e disponibilidade de cada procedimento.
  *
  * A duração não é só exibição: é ela que reserva os blocos na agenda e monta os horários
  * oferecidos à cliente. Por isso a lista vem de `useAppState().allServices` — o mesmo
@@ -661,15 +661,12 @@ function ServicesTab() {
   const { allServices, updateService } = useAppState()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [duration, setDuration] = useState('')
-  const [price, setPrice] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   async function save(service: Service) {
     const result = await updateService(service.id, {
       durationMin: Number(duration),
-      // Em branco = "Sob consulta".
-      price: price.trim() === '' ? null : Number(price.replace(',', '.')),
     })
     if (!result.ok) {
       setError(result.error ?? 'Não foi possível salvar o serviço.')
@@ -701,7 +698,6 @@ function ServicesTab() {
     if (!base) return
     const result = await updateService(service.id, {
       durationMin: base.durationMin,
-      price: base.price ?? null,
       active: true,
     })
     if (!result.ok) {
@@ -709,7 +705,7 @@ function ServicesTab() {
       return
     }
     setError(null)
-    setMessage(`${service.name} voltou aos valores do catálogo.`)
+    setMessage(`${service.name} voltou à duração do catálogo.`)
     setEditingId(null)
   }
 
@@ -762,9 +758,6 @@ function ServicesTab() {
                         <span className="badge bg-surface-2 text-ink-soft">
                           {service.durationMin} min
                         </span>
-                        <span className="shrink-0 text-[13px] font-semibold text-ink">
-                          {formatBRL(service.price)}
-                        </span>
                       </div>
 
                       {editing ? (
@@ -778,17 +771,6 @@ function ServicesTab() {
                                 value={duration}
                                 onChange={(event) => setDuration(event.target.value)}
                                 aria-label={`Duração de ${service.name}`}
-                              />
-                            </label>
-                            <label className="flex-1 basis-32 space-y-1">
-                              <span className="eyebrow">Preço (R$)</span>
-                              <input
-                                className="field-input"
-                                inputMode="decimal"
-                                value={price}
-                                placeholder="Sob consulta"
-                                onChange={(event) => setPrice(event.target.value)}
-                                aria-label={`Preço de ${service.name}`}
                               />
                             </label>
                           </div>
@@ -820,7 +802,6 @@ function ServicesTab() {
                             onClick={() => {
                               setEditingId(service.id)
                               setDuration(String(service.durationMin))
-                              setPrice(service.price == null ? '' : String(service.price))
                               setError(null)
                               setMessage(null)
                             }}

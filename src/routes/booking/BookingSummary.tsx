@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { Avatar } from '../../components/ui'
 import { findProfessional } from '../../data/catalog'
 import { appointmentRange, durationLabel, shortDateLabel } from '../../lib/dates'
-import { formatBRL } from '../../lib/format'
 import { useAppState } from '../../state/AppState'
 
 /** Réplica do cartão "Experiência selecionada" do protótipo. */
 export function ServiceSummaryCard({ serviceId }: { serviceId?: string }) {
   const navigate = useNavigate()
-  // Resumo lê o catálogo do estado: se a gestão mudou duração ou preço, aparece aqui.
+  // Resumo lê o catálogo do estado: se a gestão mudou a duração, aparece aqui.
   const { services } = useAppState()
   const service = services.find((item) => item.id === serviceId)
   if (!service) return null
@@ -35,10 +34,6 @@ export function ServiceSummaryCard({ serviceId }: { serviceId?: string }) {
           <Clock className="size-3.5" aria-hidden />
           {durationLabel(service.durationMin)}
         </span>
-        <span className="flex items-center gap-1">
-          <span className="size-1 rounded-full bg-gold-soft" aria-hidden />
-          {formatBRL(service.price)}
-        </span>
       </p>
     </section>
   )
@@ -60,10 +55,12 @@ export function ProfessionalSummaryCard({ professionalId }: { professionalId?: s
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate text-[15px] font-semibold text-ink">{professional.name}</p>
-          <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-gold">
-            <Star className="size-3.5 fill-current" aria-hidden />
-            {professional.rating.toFixed(1)}
-          </span>
+          {professional.rating !== undefined ? (
+            <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-gold">
+              <Star className="size-3.5 fill-current" aria-hidden />
+              {professional.rating.toFixed(1)}
+            </span>
+          ) : null}
         </div>
         <p className="truncate text-[12px] text-ink-muted">{professional.role}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">

@@ -3,7 +3,6 @@ import { useEffect } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { DemoNotice, StatusBadge } from '../../components/ui'
 import { findProfessional, findService } from '../../data/catalog'
-import { formatBRL } from '../../lib/format'
 import { useAppState } from '../../state/AppState'
 import { useBooking } from '../../state/BookingContext'
 import { ProfessionalSummaryCard, ScheduleLine, ServiceSummaryCard } from './BookingSummary'
@@ -58,12 +57,8 @@ export function BookingConfirmed() {
           startMin={appointment.startMin}
           durationMin={appointment.durationMin}
         />
-        <div className="flex items-center justify-between border-t border-line pt-3">
-          <div>
-            <p className="eyebrow">Valor</p>
-            <p className="font-display text-[22px] text-ink">{formatBRL(appointment.price)}</p>
-          </div>
-          <p className="text-right text-[11px] text-ink-muted">
+        <div className="border-t border-line pt-3">
+          <p className="text-[11px] text-ink-muted">
             Cliente: {appointment.clientName}
             <br />
             Pagamento no local

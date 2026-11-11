@@ -23,7 +23,7 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore'
-import { SERVICES } from '../../data/catalog'
+import { SERVICES, canPerform } from '../../data/catalog'
 import {
   agendaDocId,
   blocksOf,
@@ -134,7 +134,6 @@ function toAppointment(id: string, raw: unknown): Appointment {
     dateISO: String(data.dateISO ?? ''),
     startMin: Number(data.startMin ?? 0),
     durationMin: Number(data.durationMin ?? 0),
-    price: data.price == null ? undefined : Number(data.price),
     status: (data.status as AppointmentStatus) ?? 'aguardando',
     payment: (data.payment as PaymentStatus) ?? 'pendente',
     paymentMethod: (data.paymentMethod as PaymentMethod | null) ?? undefined,
@@ -400,6 +399,10 @@ export function createFirestoreBackend(): Backend {
     },
 
     async createAppointment(input, session) {
+      if (!canPerform(input.professionalId, input.serviceId)) {
+        return { ok: false, error: 'Esta profissional não realiza este serviço. Escolha outra.' }
+      }
+
       if (
         !fitsWorkWindow({
           dateISO: input.dateISO,
@@ -428,7 +431,6 @@ export function createFirestoreBackend(): Backend {
         dateISO: input.dateISO,
         startMin: input.startMin,
         durationMin: input.durationMin,
-        price: input.price,
         status,
         payment: 'pendente',
         origin: input.origin ?? 'app',
@@ -463,7 +465,6 @@ export function createFirestoreBackend(): Backend {
             dateISO: appointment.dateISO,
             startMin: appointment.startMin,
             durationMin: appointment.durationMin,
-            price: appointment.price ?? null,
             status: appointment.status,
             payment: appointment.payment,
             paymentMethod: null,

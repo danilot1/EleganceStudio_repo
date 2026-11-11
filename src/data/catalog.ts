@@ -1,357 +1,360 @@
-import type { Category, Professional, Service } from '../lib/types'
+import type { Category, CategoryId, Professional, Service } from '../lib/types'
 
 /**
- * Catálogo do estúdio, conforme o folheto "Nossos Serviços" (@elegancestudio2.5).
+ * Catálogo do estúdio, conforme a lista enviada pela gestão.
  *
- * Preços: o folheto não traz valores, então nenhum serviço tem `price` aqui e as telas
- * mostram "Sob consulta". A gestão pode definir o valor de cada serviço na aba
- * Serviços do painel, que grava um ajuste sem mexer neste arquivo.
+ * Sem preços: o site não mostra valor em nenhum lugar, então nenhum serviço tem preço.
  *
- * Durações: o folheto também não traz o tempo de cada serviço. Os valores abaixo são
- * estimativas para montar a agenda e devem ser conferidos pela gestão no painel.
+ * Durações: a lista não traz o tempo de cada serviço. Os valores abaixo são estimativas
+ * para montar a agenda e devem ser conferidos pela gestão na aba Serviços do painel.
  *
- * Profissionais: nomes e avaliações ainda são os do protótipo, à espera dos dados reais.
+ * Quem atende: cada profissional declara as categorias que faz (`categories`). O
+ * agendamento só oferece, para um serviço, as profissionais daquela categoria.
  */
 
 export const CATEGORIES: Category[] = [
   { id: 'todos', label: 'Todos' },
-  { id: 'maos-pes', label: 'Mãos & Pés' },
   { id: 'podologia', label: 'Podologia' },
+  { id: 'maos-pes', label: 'Mão e Pé' },
   { id: 'depilacao', label: 'Depilação' },
+  { id: 'cabelos', label: 'Cabeleireiro' },
 ]
 
 export interface ServiceGroup {
   id: string
   label: string
-  /** Profissional responsável pelo grupo; vazio quando o grupo é do próprio estúdio. */
-  professionalId?: string
-  /** Rótulo fixo exibido quando o grupo não pertence a um profissional específico. */
-  studioLabel?: string
+  /** Categoria do grupo: define quais profissionais aparecem no cabeçalho. */
+  categoryId: CategoryId
 }
 
 export const SERVICE_GROUPS: ServiceGroup[] = [
-  { id: 'servicos-basicos', label: 'Serviços Básicos', professionalId: 'cris' },
-  { id: 'podologia', label: 'Podologia', professionalId: 'simone' },
-  { id: 'depilacao-feminina', label: 'Depilação Feminina', professionalId: 'beatriz' },
-  { id: 'depilacao-masculina', label: 'Depilação Masculina', professionalId: 'beatriz' },
+  { id: 'podologia', label: 'Podologia', categoryId: 'podologia' },
+  { id: 'mao-e-pe', label: 'Mão e Pé', categoryId: 'maos-pes' },
+  { id: 'depilacao-feminina', label: 'Depilação Feminina', categoryId: 'depilacao' },
+  { id: 'depilacao-masculina', label: 'Depilação Masculina', categoryId: 'depilacao' },
+  { id: 'cabeleireiro', label: 'Cabeleireiro', categoryId: 'cabelos' },
 ]
 
 export const PROFESSIONALS: Professional[] = [
   {
-    id: 'cris',
-    name: 'Cris',
-    role: 'Manicure & Pedicure',
-    specialties: ['Mãos', 'Pés'],
-    rating: 4.8,
-    reviews: 96,
-    chair: 'Cadeira 01',
-    accent: '#b08c4f',
-  },
-  {
     id: 'simone',
     name: 'Simone',
     role: 'Podóloga',
-    specialties: ['Podologia', 'Pés'],
+    categories: ['podologia', 'maos-pes', 'depilacao'],
+    specialties: ['Podologia', 'Mão e Pé', 'Depilação'],
     rating: 4.9,
     reviews: 74,
     chair: 'Sala 02',
     accent: '#8b6b2e',
   },
   {
-    id: 'beatriz',
-    name: 'Beatriz Lima',
-    role: 'Depiladora',
-    specialties: ['Depilação', 'Sobrancelhas'],
-    rating: 4.7,
-    reviews: 43,
-    chair: 'Sala 01',
-    accent: '#9c7a45',
+    id: 'cris',
+    name: 'Cris',
+    role: 'Manicure & Depiladora',
+    categories: ['maos-pes', 'depilacao'],
+    specialties: ['Mão e Pé', 'Depilação'],
+    rating: 4.8,
+    reviews: 96,
+    chair: 'Cadeira 01',
+    accent: '#b08c4f',
+  },
+  {
+    id: 'claudia',
+    name: 'Claudia',
+    role: 'Cabeleireira',
+    categories: ['cabelos'],
+    specialties: ['Cabeleireiro'],
+    accent: '#a9825a',
   },
 ]
 
 export const SERVICES: Service[] = [
-  // ---------------------------------------------------------------- Serviços Básicos
-  {
-    id: 'pe',
-    name: 'Pé',
-    groupId: 'servicos-basicos',
-    categoryId: 'maos-pes',
-    professionalId: 'cris',
-    durationMin: 50,
-    description: 'Cuidado completo das unhas dos pés.',
-    popular: true,
-  },
-  {
-    id: 'mao',
-    name: 'Mão',
-    groupId: 'servicos-basicos',
-    categoryId: 'maos-pes',
-    professionalId: 'cris',
-    durationMin: 40,
-    description: 'Cuidado completo das unhas das mãos.',
-    popular: true,
-  },
-  {
-    id: 'esmaltacao-pe-mao',
-    name: 'Esmaltação pé e mão',
-    groupId: 'servicos-basicos',
-    categoryId: 'maos-pes',
-    professionalId: 'cris',
-    durationMin: 40,
-    description: 'Esmaltação das unhas dos pés e das mãos.',
-  },
-  {
-    id: 'spa-dos-pes',
-    name: 'SPA dos pés',
-    groupId: 'servicos-basicos',
-    categoryId: 'maos-pes',
-    professionalId: 'cris',
-    durationMin: 60,
-    description: 'Ritual de cuidado e relaxamento para os pés.',
-    featured: true,
-    popular: true,
-  },
-  {
-    id: 'esfoliacao-pe-mao',
-    name: 'Esfoliação pé e mão',
-    groupId: 'servicos-basicos',
-    categoryId: 'maos-pes',
-    professionalId: 'cris',
-    durationMin: 40,
-    description: 'Esfoliação dos pés e das mãos.',
-  },
-  {
-    id: 'esmaltacao-esfoliacao-pe-mao',
-    name: 'Esmaltação pé e mão com esfoliação',
-    groupId: 'servicos-basicos',
-    categoryId: 'maos-pes',
-    professionalId: 'cris',
-    durationMin: 75,
-    description: 'Esmaltação das unhas dos pés e das mãos, com esfoliação.',
-  },
-
   // ---------------------------------------------------------------- Podologia
   {
     id: 'podologia-procedimento-basico',
     name: 'Procedimento básico',
     groupId: 'podologia',
     categoryId: 'podologia',
-    professionalId: 'simone',
     durationMin: 60,
-    description: 'Atendimento podológico básico.',
     popular: true,
   },
   {
     id: 'unha-encravada',
-    name: 'Unha encravada com 2 (dois) curativos',
+    name: 'Unha encravada com 2 curativos',
     groupId: 'podologia',
     categoryId: 'podologia',
-    professionalId: 'simone',
     durationMin: 60,
-    description: 'Tratamento da unha encravada, com dois curativos incluídos.',
   },
   {
     id: 'olho-de-peixe',
     name: 'Olho de peixe',
     groupId: 'podologia',
     categoryId: 'podologia',
-    professionalId: 'simone',
     durationMin: 45,
-    description: 'Tratamento de olho de peixe.',
   },
   {
     id: 'hidratacao-podal-ozonio',
     name: 'Hidratação podal com ozônio',
     groupId: 'podologia',
     categoryId: 'podologia',
-    professionalId: 'simone',
     durationMin: 40,
-    description: 'Hidratação dos pés com ozônio.',
   },
   {
     id: 'orteses',
     name: 'Órteses',
     groupId: 'podologia',
     categoryId: 'podologia',
-    professionalId: 'simone',
     durationMin: 45,
-    description: 'Aplicação de órteses podológicas.',
   },
   {
     id: 'eletrocauterio',
-    name: 'Eletrocautério (por unidade)',
+    name: 'Eletrocautério (unidade)',
     groupId: 'podologia',
     categoryId: 'podologia',
-    professionalId: 'simone',
     durationMin: 30,
-    description: 'Eletrocautério, cobrado por unidade.',
   },
   {
     id: 'micose-laser',
     name: 'Tratamento de micose com laser',
     groupId: 'podologia',
     categoryId: 'podologia',
-    professionalId: 'simone',
     durationMin: 40,
-    description: 'Tratamento de micose com laser.',
+  },
+
+  // ---------------------------------------------------------------- Mão e Pé
+  {
+    id: 'esmaltacao-pe-mao',
+    name: 'Esmaltação pé e mão',
+    groupId: 'mao-e-pe',
+    categoryId: 'maos-pes',
+    durationMin: 40,
+  },
+  {
+    id: 'mao',
+    name: 'Mão',
+    groupId: 'mao-e-pe',
+    categoryId: 'maos-pes',
+    durationMin: 40,
+  },
+  {
+    id: 'pe',
+    name: 'Pé',
+    groupId: 'mao-e-pe',
+    categoryId: 'maos-pes',
+    durationMin: 50,
+  },
+  {
+    id: 'esmaltacao-esfoliacao-pe-mao',
+    name: 'Esmaltação pé e mão com esfoliação',
+    groupId: 'mao-e-pe',
+    categoryId: 'maos-pes',
+    durationMin: 75,
+  },
+  {
+    id: 'esfoliacao-pe-mao',
+    name: 'Esfoliação pé e mão',
+    groupId: 'mao-e-pe',
+    categoryId: 'maos-pes',
+    durationMin: 40,
+  },
+  {
+    id: 'spa-dos-pes',
+    name: 'SPA dos pés',
+    groupId: 'mao-e-pe',
+    categoryId: 'maos-pes',
+    durationMin: 60,
+    featured: true,
+    popular: true,
   },
 
   // ---------------------------------------------------------------- Depilação Feminina
   {
-    id: 'depilacao-feminina-sobrancelha',
-    name: 'Sobrancelha · Feminina',
+    id: 'depilacao-feminina-meia-perna',
+    name: 'Meia perna · Feminina',
     groupId: 'depilacao-feminina',
     categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 20,
-    description: 'Depilação feminina: sobrancelha.',
-    popular: true,
-  },
-  {
-    id: 'depilacao-feminina-braco',
-    name: 'Braço · Feminina',
-    groupId: 'depilacao-feminina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
     durationMin: 30,
-    description: 'Depilação feminina: braço.',
-  },
-  {
-    id: 'depilacao-feminina-axila',
-    name: 'Axila · Feminina',
-    groupId: 'depilacao-feminina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 15,
-    description: 'Depilação feminina: axila.',
-  },
-  {
-    id: 'depilacao-feminina-tricotomia',
-    name: 'Tricotomia · Feminina',
-    groupId: 'depilacao-feminina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 30,
-    description: 'Depilação feminina: tricotomia.',
-  },
-  {
-    id: 'depilacao-feminina-cantinho',
-    name: 'Cantinho · Feminina',
-    groupId: 'depilacao-feminina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 20,
-    description: 'Depilação feminina: cantinho.',
-  },
-  {
-    id: 'depilacao-feminina-x1',
-    name: 'X1 · Feminina',
-    groupId: 'depilacao-feminina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 30,
-    description: 'Depilação feminina: modalidade X1.',
-  },
-  {
-    id: 'depilacao-feminina-x2',
-    name: 'X2 · Feminina',
-    groupId: 'depilacao-feminina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 45,
-    description: 'Depilação feminina: modalidade X2.',
   },
   {
     id: 'depilacao-feminina-coxa',
     name: 'Coxa · Feminina',
     groupId: 'depilacao-feminina',
     categoryId: 'depilacao',
-    professionalId: 'beatriz',
     durationMin: 30,
-    description: 'Depilação feminina: coxa.',
   },
   {
-    id: 'depilacao-feminina-meia-perna',
-    name: 'Meia perna · Feminina',
+    id: 'depilacao-feminina-axila',
+    name: 'Axila · Feminina',
     groupId: 'depilacao-feminina',
     categoryId: 'depilacao',
-    professionalId: 'beatriz',
+    durationMin: 15,
+  },
+  {
+    id: 'depilacao-feminina-sobrancelha',
+    name: 'Sobrancelha · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
+    durationMin: 20,
+    popular: true,
+  },
+  {
+    id: 'depilacao-feminina-cantinho',
+    name: 'Cantinho · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
+    durationMin: 20,
+  },
+  {
+    id: 'depilacao-feminina-buco',
+    name: 'Buço · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
+    durationMin: 15,
+  },
+  {
+    id: 'depilacao-feminina-rosto',
+    name: 'Rosto · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
     durationMin: 30,
-    description: 'Depilação feminina: meia perna.',
+  },
+  {
+    id: 'depilacao-feminina-tricotomia',
+    name: 'Tricotomia · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
+    durationMin: 30,
+  },
+  {
+    id: 'depilacao-feminina-nadegas',
+    name: 'Nádegas · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
+    durationMin: 30,
+  },
+  {
+    id: 'depilacao-feminina-braco',
+    name: 'Braço · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
+    durationMin: 30,
+  },
+  {
+    id: 'depilacao-feminina-x1',
+    name: 'X1 · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
+    durationMin: 30,
+  },
+  {
+    id: 'depilacao-feminina-x2',
+    name: 'X2 · Feminina',
+    groupId: 'depilacao-feminina',
+    categoryId: 'depilacao',
+    durationMin: 45,
   },
 
   // ---------------------------------------------------------------- Depilação Masculina
   {
-    id: 'depilacao-masculina-sobrancelha',
-    name: 'Sobrancelha · Masculina',
+    id: 'depilacao-masculina-meia-perna',
+    name: 'Meia perna · Masculina',
     groupId: 'depilacao-masculina',
     categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 20,
-    description: 'Depilação masculina: sobrancelha.',
-  },
-  {
-    id: 'depilacao-masculina-braco',
-    name: 'Braço · Masculina',
-    groupId: 'depilacao-masculina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
     durationMin: 30,
-    description: 'Depilação masculina: braço.',
-  },
-  {
-    id: 'depilacao-masculina-axila',
-    name: 'Axila · Masculina',
-    groupId: 'depilacao-masculina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 15,
-    description: 'Depilação masculina: axila.',
-  },
-  {
-    id: 'depilacao-masculina-tricotomia',
-    name: 'Tricotomia · Masculina',
-    groupId: 'depilacao-masculina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 30,
-    description: 'Depilação masculina: tricotomia.',
-  },
-  {
-    id: 'depilacao-masculina-torax',
-    name: 'Tórax · Masculina',
-    groupId: 'depilacao-masculina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 30,
-    description: 'Depilação masculina: tórax.',
-  },
-  {
-    id: 'depilacao-masculina-barriga',
-    name: 'Barriga · Masculina',
-    groupId: 'depilacao-masculina',
-    categoryId: 'depilacao',
-    professionalId: 'beatriz',
-    durationMin: 20,
-    description: 'Depilação masculina: barriga.',
   },
   {
     id: 'depilacao-masculina-coxa',
     name: 'Coxa · Masculina',
     groupId: 'depilacao-masculina',
     categoryId: 'depilacao',
-    professionalId: 'beatriz',
     durationMin: 30,
-    description: 'Depilação masculina: coxa.',
   },
   {
-    id: 'depilacao-masculina-meia-perna',
-    name: 'Meia perna · Masculina',
+    id: 'depilacao-masculina-axila',
+    name: 'Axila · Masculina',
     groupId: 'depilacao-masculina',
     categoryId: 'depilacao',
-    professionalId: 'beatriz',
+    durationMin: 15,
+  },
+  {
+    id: 'depilacao-masculina-torax',
+    name: 'Tórax · Masculina',
+    groupId: 'depilacao-masculina',
+    categoryId: 'depilacao',
     durationMin: 30,
-    description: 'Depilação masculina: meia perna.',
+  },
+  {
+    id: 'depilacao-masculina-barriga',
+    name: 'Barriga · Masculina',
+    groupId: 'depilacao-masculina',
+    categoryId: 'depilacao',
+    durationMin: 20,
+  },
+  {
+    id: 'depilacao-masculina-tricotomia',
+    name: 'Tricotomia · Masculina',
+    groupId: 'depilacao-masculina',
+    categoryId: 'depilacao',
+    durationMin: 30,
+  },
+  {
+    id: 'depilacao-masculina-nadegas',
+    name: 'Nádegas · Masculina',
+    groupId: 'depilacao-masculina',
+    categoryId: 'depilacao',
+    durationMin: 30,
+  },
+  {
+    id: 'depilacao-masculina-braco',
+    name: 'Braço · Masculina',
+    groupId: 'depilacao-masculina',
+    categoryId: 'depilacao',
+    durationMin: 30,
+  },
+
+  // ---------------------------------------------------------------- Cabeleireiro
+  {
+    id: 'lavagem',
+    name: 'Lavagem',
+    groupId: 'cabeleireiro',
+    categoryId: 'cabelos',
+    durationMin: 30,
+  },
+  {
+    id: 'escova',
+    name: 'Escova',
+    groupId: 'cabeleireiro',
+    categoryId: 'cabelos',
+    durationMin: 45,
+  },
+  {
+    id: 'corte',
+    name: 'Corte',
+    groupId: 'cabeleireiro',
+    categoryId: 'cabelos',
+    durationMin: 45,
+    popular: true,
+  },
+  {
+    id: 'hidratacao',
+    name: 'Hidratação',
+    groupId: 'cabeleireiro',
+    categoryId: 'cabelos',
+    durationMin: 60,
+  },
+  {
+    id: 'coloracao',
+    name: 'Coloração',
+    groupId: 'cabeleireiro',
+    categoryId: 'cabelos',
+    durationMin: 120,
+  },
+  {
+    id: 'mechas-luzes',
+    name: 'Mechas/Luzes',
+    groupId: 'cabeleireiro',
+    categoryId: 'cabelos',
+    durationMin: 180,
   },
 ]
 
@@ -367,6 +370,30 @@ export function findGroup(id: string | undefined): ServiceGroup | undefined {
   return SERVICE_GROUPS.find((group) => group.id === id)
 }
 
+/** Profissionais que atendem a categoria, na ordem do catálogo. */
+export function professionalsFor(categoryId: CategoryId | undefined): Professional[] {
+  return PROFESSIONALS.filter((professional) =>
+    categoryId ? professional.categories.includes(categoryId) : false,
+  )
+}
+
+/** Profissionais que fazem o serviço (as da categoria dele). */
+export function professionalsForService(serviceId: string | undefined): Professional[] {
+  return professionalsFor(findService(serviceId)?.categoryId)
+}
+
+/** A profissional atende a categoria deste serviço? */
+export function canPerform(professionalId: string | undefined, serviceId: string | undefined) {
+  return professionalsForService(serviceId).some((professional) => professional.id === professionalId)
+}
+
+/** "Simone", "Simone e Cris", "Ana, Bia e Cris". */
+export function namesLabel(professionals: Professional[]): string {
+  const names = professionals.map((professional) => professional.name)
+  if (names.length <= 1) return names[0] ?? 'Elegance Studio'
+  return `${names.slice(0, -1).join(', ')} e ${names.at(-1)}`
+}
+
 export function professionalLabel(professionalId: string | undefined): string {
   const professional = findProfessional(professionalId)
   return professional ? professional.name : 'Elegance Studio'
@@ -374,8 +401,8 @@ export function professionalLabel(professionalId: string | undefined): string {
 
 /** Serviços exibidos na Home em "Serviços Populares". */
 export const POPULAR_SERVICE_IDS = [
-  'spa-dos-pes',
   'podologia-procedimento-basico',
-  'mao',
+  'spa-dos-pes',
   'depilacao-feminina-sobrancelha',
+  'corte',
 ]

@@ -78,15 +78,16 @@ tela em vez de simular sucesso:
 2. **Nenhuma referência de desktop.** Todas as telas enviadas são mobile (~390 px). A área do
    cliente é uma coluna central de até 560 px; o Painel Executivo vira duas colunas em telas
    grandes. Essa decisão de layout é deste projeto, não do protótipo.
-3. **Catálogo do folheto, sem preços.** Os 30 serviços seguem o folheto "Nossos Serviços"
-   (@elegancestudio2.5): Serviços Básicos, Podologia e Depilação feminina e masculina. O folheto
-   não traz valores nem durações: nenhum serviço tem preço (as telas mostram "Sob consulta") e as
-   durações em `src/data/catalog.ts` são estimativas. A gestão define preço e duração reais na aba
-   Serviços do painel; preço em branco volta para "Sob consulta". Profissionais (nomes,
-   avaliações) e o depoimento da Home ainda são do protótipo.
-4. **Descrições de serviço curtas.** O folheto só lista os nomes; cada serviço tem uma
-   descrição de uma linha, sem prometer o que o folheto não diz. "X1" e "X2" seguem o nome do
-   folheto. Os depoimentos da Home ainda são do protótipo.
+3. **Catálogo da gestão, sem preços.** 39 serviços em cinco grupos: Podologia, Mão e Pé,
+   Depilação feminina e masculina e Cabeleireiro. O site não mostra preço em nenhum lugar (nem
+   no painel nem nos e-mails), e o preço saiu do modelo de dados. As durações em
+   `src/data/catalog.ts` são estimativas: a gestão confere cada uma na aba Serviços do painel.
+   Cada profissional atende só as suas categorias (Simone: Podologia, Mão e Pé e Depilação;
+   Cris: Mão e Pé e Depilação; Claudia: Cabeleireiro), e o agendamento só oferece quem faz o
+   serviço escolhido. Avaliações de Simone e Cris ainda são do protótipo.
+4. **Serviços só com o nome.** A lista da gestão traz apenas os nomes, então os serviços não
+   têm descrição. "X1" e "X2" seguem o nome da lista. A segunda foto do salão na Home é a sala
+   de podologia do estúdio; as demais fotos e os depoimentos ainda são do protótipo.
 5. **"Próximos (3)" em Meus Agendamentos.** O print mostra (2). O Painel mostra a mesma cliente
    (Mariana Silveira) em um atendimento de hoje, e os dois registros pertencem à mesma conta —
    mantivemos a coerência dos dados em vez de duplicar a cliente.
@@ -130,4 +131,4 @@ tela em vez de simular sucesso:
    registrados em `mail/`, mas só saem depois desse passo — ver `DEPLOY.md`.
 4. Endurecer a escrita em `agenda/`: mover a transação para uma Cloud Function (plano Blaze),
    para que as regras possam recusar escrita direta do cliente.
-5. Conferir as durações estimadas, definir preços no painel e incluir as fotos do estúdio.
+5. Conferir as durações estimadas no painel e incluir as demais fotos do estúdio.

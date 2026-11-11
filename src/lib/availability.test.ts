@@ -23,7 +23,6 @@ function appointment(partial: Partial<Appointment>): Appointment {
     dateISO: FUTURE_ISO,
     startMin: 10 * 60,
     durationMin: 60,
-    price: 100,
     status: 'confirmado',
     payment: 'pendente',
     origin: 'app',

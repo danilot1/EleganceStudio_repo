@@ -219,13 +219,13 @@ describe('avisos por e-mail', () => {
 describe('catálogo e agenda', () => {
   it('a cliente não altera o catálogo', async () => {
     await assertFails(
-      setDoc(doc(asClient(), 'serviceOverrides', 'corte-visagismo'), { price: 1 }),
+      setDoc(doc(asClient(), 'serviceOverrides', 'corte'), { durationMin: 15 }),
     )
   })
 
   it('a gestão altera o catálogo', async () => {
     await assertSucceeds(
-      setDoc(doc(asAdmin(), 'serviceOverrides', 'corte-visagismo'), { price: 200 }),
+      setDoc(doc(asAdmin(), 'serviceOverrides', 'corte'), { durationMin: 60 }),
     )
   })
 
