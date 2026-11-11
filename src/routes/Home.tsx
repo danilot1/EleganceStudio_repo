@@ -22,8 +22,8 @@ import { formatBRL } from '../lib/format'
 import type { CategoryId } from '../lib/types'
 import { useAppState } from '../state/AppState'
 
-// Endereço e Instagram do folheto "Nossos Serviços".
-const STUDIO_ADDRESS = 'PE-027, Aldeia dos Camarás, Camaragibe - Pernambuco, 54786-300'
+// Instagram do folheto "Nossos Serviços"; endereço informado pelo estúdio.
+const STUDIO_ADDRESS = 'Avenida General Newton Cavalcante, 9576 - Camaragibe - PE, 54786-013, Brasil'
 const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STUDIO_ADDRESS)}`
 
 /** Chips de destaque da Home (rótulos do protótipo). */
